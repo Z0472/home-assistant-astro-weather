@@ -1,3 +1,8 @@
+## 12.1.8 - 2026-09-09
+- Lovelace dashboard resources now use physical versioned files: `/local/astro-start-card-v20.js` and `/local/moon-forecast-card-v22.js`.
+- The add-on writes both compatibility card names and versioned card names into `/config/www` on startup.
+- This avoids Home Assistant or browser issues with query-string cache suffixes such as `?v=20`.
+
 ## 12.1.7 - 2026-09-09
 - Lovelace resource auto-install now updates existing astro card resource URLs instead of adding duplicates.
 - Dashboard resource cache URLs are now astro-start-card v20 and moon-forecast-card v22.
