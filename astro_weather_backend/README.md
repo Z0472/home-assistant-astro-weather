@@ -55,13 +55,28 @@ Moon:
 
 Use the Home Assistant App/Add-on Store repository flow. No files from this repository need to be copied into `/addons`.
 
-In Home Assistant open **Settings -> Apps -> Install app -> three-dot menu -> Repositories** and add:
+1. In Home Assistant open **Settings -> Apps -> Install app**.
+2. Open the three-dot menu and choose **Repositories**.
+3. Add this repository URL:
 
 ```text
 https://github.com/Z0472/home-assistant-astro-weather
 ```
 
-Then install **Astro Weather Backend** from the store.
+4. Install **Astro Weather Backend** from the store.
+5. Open the add-on configuration and set at least:
+
+```yaml
+latitude: 50.0755
+longitude: 14.4378
+altitude: 250
+timezone: Europe/Prague
+```
+
+Use your real observing location values here.
+
+6. Start the add-on.
+7. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
 
 For later upgrades use **Check for updates** or enable **Auto update**. The Supervisor compares the installed app version with `astro_weather_backend/config.yaml`.
 
@@ -69,7 +84,19 @@ Important: Home Assistant Supervisor must be able to read the repository directl
 
 If Home Assistant still shows an old local test install, uninstall it and remove the old local app folder once. That is only cleanup for previous manual tests, not the normal install path.
 
-## Dashboard Cards
+## Home Assistant Entities
+
+The add-on publishes these entities itself:
+
+```text
+sensor.astro_weather_detail
+sensor.astro_vhodnost_foceni
+sensor.mesic_foceni_predpoved
+```
+
+No `command_line`, REST sensor package, external Moon integration, Python script, `numpy`, `skyfield`, or `de440.bsp` is required.
+
+## Dashboard Card Files
 
 The add-on image contains the dashboard cards and writes them on startup to:
 
@@ -78,23 +105,94 @@ The add-on image contains the dashboard cards and writes them on startup to:
 /config/www/moon-forecast-card.js
 ```
 
-The option `install_dashboard_cards` controls this behavior and is enabled by default.
+The option `install_dashboard_cards` controls this behavior and is enabled by default. If `/config/www` does not exist, the add-on creates it.
 
-Lovelace resources are still a one-time Home Assistant UI setting:
+The add-on deliberately does not edit Home Assistant's internal `.storage` files, so Lovelace resources remain a one-time UI setting.
+
+## Activate Dashboard Resources
+
+1. Start the add-on once and check the log for:
 
 ```text
-/local/astro-start-card.js?v=17
-/local/moon-forecast-card.js?v=19
+KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
 ```
 
-The add-on deliberately does not edit Home Assistant's internal `.storage` files.
+2. Open these URLs in the same Home Assistant browser session:
+
+```text
+https://YOUR-HA/local/astro-start-card.js?v=17
+https://YOUR-HA/local/moon-forecast-card.js?v=19
+```
+
+They should show JavaScript source. If they show `404: Not Found`, the files have not been copied yet or `install_dashboard_cards` is disabled.
+
+3. Open **Settings -> Dashboards -> Resources**. In some Home Assistant versions this screen is available directly at:
+
+```text
+/config/lovelace/resources
+```
+
+4. Add these resources as **JavaScript module**:
+
+| URL | Resource type |
+| --- | --- |
+| `/local/astro-start-card.js?v=17` | JavaScript module |
+| `/local/moon-forecast-card.js?v=19` | JavaScript module |
+
+5. Refresh the browser. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
+
+## Dashboard Card YAML
+
+Main decision card:
+
+```yaml
+type: custom:astro-start-card
+decision_entity: sensor.astro_vhodnost_foceni
+weather_entity: sensor.astro_weather_detail
+moon_entity: sensor.mesic_foceni_predpoved
+days: 3
+grid_options:
+  columns: full
+```
+
+Moon and longer forecast overview:
+
+```yaml
+type: custom:moon-forecast-card
+entity: sensor.mesic_foceni_predpoved
+weather_entity: sensor.astro_weather_detail
+decision_entity: sensor.astro_vhodnost_foceni
+days: 45
+grid_options:
+  columns: full
+```
+
+Both cards in one vertical stack:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:astro-start-card
+    decision_entity: sensor.astro_vhodnost_foceni
+    weather_entity: sensor.astro_weather_detail
+    moon_entity: sensor.mesic_foceni_predpoved
+    days: 3
+
+  - type: custom:moon-forecast-card
+    entity: sensor.mesic_foceni_predpoved
+    weather_entity: sensor.astro_weather_detail
+    decision_entity: sensor.astro_vhodnost_foceni
+    days: 45
+```
+
+To add a card manually: open the dashboard, choose **Edit dashboard -> Add card -> Manual**, paste one of the YAML blocks above and save.
 
 ## Verify
 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.3
+Astro Weather Backend 12.1.4
 KARTY: zapsano do /config/www: ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing
 MESIC INTERNI: ...
