@@ -18,7 +18,7 @@ home-assistant, addon, astronomy, astrophotography, weather, aladin, cams, moon,
 
 ## Current Version
 
-**Astro Weather Backend 12.1.7**
+**Astro Weather Backend 12.1.8**
 
 This version is designed for a clean Home Assistant install:
 
@@ -77,7 +77,9 @@ When `install_dashboard_cards: true` is enabled, the add-on also creates `/confi
 
 ```text
 /config/www/astro-start-card.js
+/config/www/astro-start-card-v20.js
 /config/www/moon-forecast-card.js
+/config/www/moon-forecast-card-v22.js
 ```
 
 The JavaScript files are copied automatically. Lovelace resources are still a one-time Home Assistant dashboard setting.
@@ -93,8 +95,8 @@ KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
 2. In a browser, verify that Home Assistant can serve the files:
 
 ```text
-https://YOUR-HA/local/astro-start-card.js?v=20
-https://YOUR-HA/local/moon-forecast-card.js?v=22
+https://YOUR-HA/local/astro-start-card-v20.js
+https://YOUR-HA/local/moon-forecast-card-v22.js
 ```
 
 Both URLs should show JavaScript source, not `404: Not Found`.
@@ -109,8 +111,8 @@ Both URLs should show JavaScript source, not `404: Not Found`.
 
 | URL | Resource type |
 | --- | --- |
-| `/local/astro-start-card.js?v=20` | JavaScript module |
-| `/local/moon-forecast-card.js?v=22` | JavaScript module |
+| `/local/astro-start-card-v20.js` | JavaScript module |
+| `/local/moon-forecast-card-v22.js` | JavaScript module |
 
 5. Refresh the browser page. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
 
