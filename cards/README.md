@@ -2,8 +2,8 @@
 
 The current card sources are kept here as TXT files for easy download and inspection:
 
-- `astro-start-card-v17.txt`
-- `moon-forecast-card-v19.txt`
+- `astro-start-card-v18.txt`
+- `moon-forecast-card-v20.txt`
 
 The same cards are bundled inside the add-on image and copied automatically on startup to:
 
@@ -22,8 +22,8 @@ In Home Assistant open **Settings -> Dashboards -> Resources** and add:
 
 | URL | Resource type |
 | --- | --- |
-| `/local/astro-start-card.js?v=17` | JavaScript module |
-| `/local/moon-forecast-card.js?v=19` | JavaScript module |
+| `/local/astro-start-card.js?v=18` | JavaScript module |
+| `/local/moon-forecast-card.js?v=20` | JavaScript module |
 
 If the Resources page is not visible, try the direct Home Assistant path:
 
@@ -31,7 +31,7 @@ If the Resources page is not visible, try the direct Home Assistant path:
 /config/lovelace/resources
 ```
 
-After adding or changing a resource, refresh the browser. If the card still does not load, use Ctrl+F5 or raise the query suffix, for example `?v=17` to `?v=18`.
+After adding or changing a resource, refresh the browser. If the card still does not load, use Ctrl+F5 or raise the query suffix, for example `?v=18` to `?v=19`.
 
 ## Card YAML
 
@@ -82,8 +82,8 @@ cards:
 Open these URLs in the same Home Assistant browser session:
 
 ```text
-https://YOUR-HA/local/astro-start-card.js?v=17
-https://YOUR-HA/local/moon-forecast-card.js?v=19
+https://YOUR-HA/local/astro-start-card.js?v=18
+https://YOUR-HA/local/moon-forecast-card.js?v=20
 ```
 
 They must show JavaScript source. If they return `404: Not Found`, the add-on has not copied the files yet or `install_dashboard_cards` is disabled.
