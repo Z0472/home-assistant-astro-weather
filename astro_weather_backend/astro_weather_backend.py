@@ -37,14 +37,14 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.6"
+APP_VERSION = "12.1.7"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
 DASHBOARD_CARD_FILES = ("astro-start-card.js", "moon-forecast-card.js")
-DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card.js?v=19", "/local/moon-forecast-card.js?v=21")
+DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card.js?v=20", "/local/moon-forecast-card.js?v=22")
 RAD = math.pi / 180.0
 DEG = 180.0 / math.pi
 J2000 = 2451545.0
@@ -125,7 +125,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.6 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.7 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -290,10 +290,19 @@ def home_assistant_api_request(
         return text
 
 
+def lovelace_resource_base(url: str) -> str:
+    return str(url or "").split("?", 1)[0].strip()
+
+
 def ensure_lovelace_resources(options: dict[str, Any]) -> None:
     if not options.get("install_lovelace_resources", True):
         log("KARTY RESOURCE: automaticka registrace Lovelace resources je vypnuta.")
         return
+
+    desired = {
+        "/local/astro-start-card.js": "/local/astro-start-card.js?v=20",
+        "/local/moon-forecast-card.js": "/local/moon-forecast-card.js?v=22",
+    }
 
     try:
         resources = home_assistant_api_request("/config/lovelace/resources")
@@ -304,29 +313,67 @@ def ensure_lovelace_resources(options: dict[str, Any]) -> None:
         else:
             rows = []
 
-        existing = {
-            str(row.get("url", ""))
-            for row in rows
-            if isinstance(row, dict)
-        }
-
-        created: list[str] = []
+        rows = [row for row in rows if isinstance(row, dict)]
+        changed: list[str] = []
         present: list[str] = []
-        for url in DASHBOARD_CARD_RESOURCE_URLS:
-            if url in existing:
-                present.append(url)
-                continue
-            home_assistant_api_request(
-                "/config/lovelace/resources",
-                method="POST",
-                payload={"res_type": "module", "url": url},
-            )
-            created.append(url)
+        warnings: list[str] = []
 
-        if created:
-            log(f"KARTY RESOURCE: pridano do Lovelace resources: {', '.join(created)}")
+        for base_url, wanted_url in desired.items():
+            matches = [
+                row for row in rows
+                if lovelace_resource_base(str(row.get("url", ""))) == base_url
+            ]
+
+            exact = [row for row in matches if str(row.get("url", "")) == wanted_url]
+            if exact:
+                present.append(wanted_url)
+                duplicates = [row for row in matches if row not in exact]
+            else:
+                duplicates = matches[1:]
+                row_to_update = matches[0] if matches else None
+                resource_id = str(row_to_update.get("id", "")).strip() if row_to_update else ""
+                if resource_id:
+                    try:
+                        home_assistant_api_request(
+                            f"/config/lovelace/resources/{urllib.parse.quote(resource_id, safe='')}",
+                            method="PUT",
+                            payload={"res_type": "module", "url": wanted_url},
+                        )
+                        changed.append(wanted_url)
+                    except Exception as exc:
+                        warnings.append(f"{base_url}: nelze prepsat resource {resource_id}: {exc}")
+                else:
+                    try:
+                        home_assistant_api_request(
+                            "/config/lovelace/resources",
+                            method="POST",
+                            payload={"res_type": "module", "url": wanted_url},
+                        )
+                        changed.append(wanted_url)
+                    except Exception as exc:
+                        warnings.append(f"{base_url}: nelze pridat resource: {exc}")
+
+            for duplicate in duplicates:
+                resource_id = str(duplicate.get("id", "")).strip()
+                old_url = str(duplicate.get("url", ""))
+                if not resource_id:
+                    warnings.append(f"{old_url}: duplicitni resource nema id, smaz rucne")
+                    continue
+                try:
+                    home_assistant_api_request(
+                        f"/config/lovelace/resources/{urllib.parse.quote(resource_id, safe='')}",
+                        method="DELETE",
+                    )
+                    changed.append(f"smazano {old_url}")
+                except Exception as exc:
+                    warnings.append(f"{old_url}: nelze smazat duplicitni resource {resource_id}: {exc}")
+
+        if changed:
+            log(f"KARTY RESOURCE: aktualizovano v Lovelace resources: {', '.join(changed)}")
         elif present:
             log("KARTY RESOURCE: Lovelace resources uz obsahuji aktualni dashboard karty.")
+        for warning in warnings:
+            log(f"KARTY RESOURCE VAROVANI: {warning}")
     except Exception as exc:
         log(f"KARTY RESOURCE VAROVANI: automaticka registrace selhala: {exc}")
 
