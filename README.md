@@ -1,6 +1,20 @@
 # Home Assistant Astro Weather
 
-Home Assistant app/add-on for astrophotography planning. It combines MET Norway, CHMU ALADIN, internal Moon/night calculation, CAMS AOD 550 through Open-Meteo, and 7Timer seeing into one practical decision: **SPUSTIT / NEJISTE / NESPOUSTET**.
+Home Assistant app/add-on for astrophotography planning. It combines MET Norway, CHMU ALADIN, internal Moon/night calculation, CAMS/Open-Meteo AOD 550, Open-Meteo dust concentration and 7Timer seeing into one practical decision: **SPUSTIT / NEJISTE / NESPOUSTET**.
+
+## Repository Description
+
+Suggested GitHub **About -> Description** text:
+
+```text
+Home Assistant add-on for astrophotography weather decisions using MET Norway, CHMU ALADIN, internal Moon, CAMS/Open-Meteo AOD and 7Timer seeing.
+```
+
+Suggested GitHub topics:
+
+```text
+home-assistant, addon, astronomy, astrophotography, weather, aladin, cams, moon, seeing, 7timer
+```
 
 ## Current Version
 
@@ -30,19 +44,121 @@ The default MET User-Agent is generic and points to this repository, and the bun
 
 The normal install path is the Home Assistant App/Add-on Store repository flow. No files from this repository need to be copied into `/addons`.
 
-In Home Assistant open **Settings -> Apps -> Install app -> three-dot menu -> Repositories** and add:
+1. In Home Assistant open **Settings -> Apps -> Install app**.
+2. Open the three-dot menu and choose **Repositories**.
+3. Add this repository URL:
 
 ```text
 https://github.com/Z0472/home-assistant-astro-weather
 ```
 
-Then install **Astro Weather Backend** from the store.
+4. Install **Astro Weather Backend** from the store.
+5. Open the add-on configuration and set at least `latitude`, `longitude`, `altitude` and `timezone`.
+6. Start the add-on.
+7. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
 
 Future upgrades are handled by Home Assistant through **Check for updates** or **Auto update**. A new release only needs a higher version in `astro_weather_backend/config.yaml`.
 
 Important: Home Assistant Supervisor must be able to read this repository directly. If the repository is private, make it public or publish the add-on in a public release repository before installing from Store.
 
 The repository contains the required root `repository.yaml` and the add-on directory `astro_weather_backend/`.
+
+## What The Add-on Creates
+
+After the first successful start the add-on publishes:
+
+```text
+sensor.astro_weather_detail
+sensor.astro_vhodnost_foceni
+sensor.mesic_foceni_predpoved
+```
+
+When `install_dashboard_cards: true` is enabled, the add-on also creates `/config/www` if needed and writes:
+
+```text
+/config/www/astro-start-card.js
+/config/www/moon-forecast-card.js
+```
+
+The JavaScript files are copied automatically. Lovelace resources are still a one-time Home Assistant dashboard setting.
+
+## Dashboard Resource Activation
+
+1. Start the add-on once and check the log for:
+
+```text
+KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
+```
+
+2. In a browser, verify that Home Assistant can serve the files:
+
+```text
+https://YOUR-HA/local/astro-start-card.js?v=17
+https://YOUR-HA/local/moon-forecast-card.js?v=19
+```
+
+Both URLs should show JavaScript source, not `404: Not Found`.
+
+3. Open **Settings -> Dashboards -> Resources**. In some Home Assistant versions the same screen is available at:
+
+```text
+/config/lovelace/resources
+```
+
+4. Add these resources as **JavaScript module**:
+
+| URL | Resource type |
+| --- | --- |
+| `/local/astro-start-card.js?v=17` | JavaScript module |
+| `/local/moon-forecast-card.js?v=19` | JavaScript module |
+
+5. Refresh the browser page. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
+
+## Dashboard Card YAML
+
+Main decision card:
+
+```yaml
+type: custom:astro-start-card
+decision_entity: sensor.astro_vhodnost_foceni
+weather_entity: sensor.astro_weather_detail
+moon_entity: sensor.mesic_foceni_predpoved
+days: 3
+grid_options:
+  columns: full
+```
+
+Moon and longer forecast overview:
+
+```yaml
+type: custom:moon-forecast-card
+entity: sensor.mesic_foceni_predpoved
+weather_entity: sensor.astro_weather_detail
+decision_entity: sensor.astro_vhodnost_foceni
+days: 45
+grid_options:
+  columns: full
+```
+
+Both cards in one vertical stack:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: custom:astro-start-card
+    decision_entity: sensor.astro_vhodnost_foceni
+    weather_entity: sensor.astro_weather_detail
+    moon_entity: sensor.mesic_foceni_predpoved
+    days: 3
+
+  - type: custom:moon-forecast-card
+    entity: sensor.mesic_foceni_predpoved
+    weather_entity: sensor.astro_weather_detail
+    decision_entity: sensor.astro_vhodnost_foceni
+    days: 45
+```
+
+To add a card manually: open the dashboard, choose **Edit dashboard -> Add card -> Manual**, paste one of the YAML blocks above and save.
 
 ## Data Sources
 
@@ -54,21 +170,17 @@ The repository contains the required root `repository.yaml` and the add-on direc
 
 SkyAccuracy.cz is no longer used. If Open-Meteo/CAMS or 7Timer is unavailable, stale, or changes shape, AOD/seeing are ignored and the decision continues from MET + ALADIN + internal Moon.
 
-## Dashboard Cards
+## Troubleshooting
 
-The add-on installs current dashboard card files to `/config/www` on startup:
+If the dashboard says `Custom element doesn't exist: astro-start-card`, Home Assistant has not loaded the JavaScript resource. Check that the file URL returns JavaScript, check the resource entry, then refresh the browser cache.
 
-- `/config/www/astro-start-card.js`
-- `/config/www/moon-forecast-card.js`
-
-Keep these Lovelace resources configured in Home Assistant:
+If the card loads but shows missing entities, wait for the add-on to finish the first forecast refresh and check that these entities exist in **Developer Tools -> States**:
 
 ```text
-/local/astro-start-card.js?v=17
-/local/moon-forecast-card.js?v=19
+sensor.astro_weather_detail
+sensor.astro_vhodnost_foceni
+sensor.mesic_foceni_predpoved
 ```
-
-The source TXT copies remain in [cards/](cards/) for manual inspection or emergency use.
 
 ## Tests
 
