@@ -1,4 +1,4 @@
-// Moon Forecast Card v21 - direct CAMS/Open-Meteo and 7Timer source links.
+// Moon Forecast Card v22 - direct CAMS/Open-Meteo and 7Timer source links.
 class MoonForecastCard extends HTMLElement {
   constructor() {
     super();
