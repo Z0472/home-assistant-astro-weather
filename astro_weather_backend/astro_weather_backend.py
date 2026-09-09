@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.4"
+APP_VERSION = "12.1.5"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
