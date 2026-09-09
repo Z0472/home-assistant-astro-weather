@@ -1,4 +1,4 @@
-// astro-start-card v17 - direct CAMS/Open-Meteo and 7Timer source links.
+// astro-start-card v18 - direct CAMS/Open-Meteo and 7Timer source links.
 class AstroStartCard extends HTMLElement {
   constructor() {
     super();
@@ -260,7 +260,7 @@ class AstroStartCard extends HTMLElement {
 
   _skySourceLinks() {
     const links = [
-      { url: "https://open-meteo.com/en/docs/air-quality-api", label: "CAMS" },
+      { url: "https://open-meteo.com/en/docs/air-quality-api", label: "CAMS/Open-Meteo" },
       { url: "https://www.7timer.info/doc.php?lang=en", label: "7Timer" },
     ];
     return links.map((item) =>
@@ -774,7 +774,7 @@ window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "astro-start-card")) {
   window.customCards.push({
     type: "astro-start-card",
-    name: "Astro Start Decision Card v17",
+    name: "Astro Start Decision Card v18",
     description: "Centrální rozhodnutí observatoře včetně AOD 550 a seeingu.",
     preview: false,
   });
