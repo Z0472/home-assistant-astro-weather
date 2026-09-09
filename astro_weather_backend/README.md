@@ -1,4 +1,4 @@
-# Astro Weather Backend 12.1.4
+# Astro Weather Backend 12.1.5
 
 Prepared 9 Sep 2026. Clean Home Assistant add-on version with internal Moon calculation, no SkyAccuracy dependency, automatic dashboard-card installation, and repository-based install/update instructions.
 
@@ -120,8 +120,8 @@ KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
 2. Open these URLs in the same Home Assistant browser session:
 
 ```text
-https://YOUR-HA/local/astro-start-card.js?v=17
-https://YOUR-HA/local/moon-forecast-card.js?v=19
+https://YOUR-HA/local/astro-start-card.js?v=18
+https://YOUR-HA/local/moon-forecast-card.js?v=20
 ```
 
 They should show JavaScript source. If they show `404: Not Found`, the files have not been copied yet or `install_dashboard_cards` is disabled.
@@ -136,8 +136,8 @@ They should show JavaScript source. If they show `404: Not Found`, the files hav
 
 | URL | Resource type |
 | --- | --- |
-| `/local/astro-start-card.js?v=17` | JavaScript module |
-| `/local/moon-forecast-card.js?v=19` | JavaScript module |
+| `/local/astro-start-card.js?v=18` | JavaScript module |
+| `/local/moon-forecast-card.js?v=20` | JavaScript module |
 
 5. Refresh the browser. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
 
@@ -192,7 +192,7 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.4
+Astro Weather Backend 12.1.5
 KARTY: zapsano do /config/www: ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing
 MESIC INTERNI: ...
