@@ -1,0 +1,86 @@
+name: "Astro Weather Backend"
+description: "Predpoved MET + CHMU ALADIN + interni Mesic + CAMS/Open-Meteo AOD + 7Timer seeing"
+version: "12.1.4"
+slug: "astro_weather_backend"
+url: "https://github.com/Z0472/home-assistant-astro-weather"
+init: false
+startup: services
+boot: auto
+homeassistant_api: true
+map:
+  - type: homeassistant_config
+    read_only: false
+    path: /ha_config
+arch:
+  - amd64
+  - aarch64
+options:
+  latitude: 50.0755
+  longitude: 14.4378
+  altitude: 250
+  timezone: "Europe/Prague"
+  refresh_minutes: 30
+  horizon_hours: 72
+  met_user_agent: "AstroWeatherBackend/12.1.4 https://github.com/Z0472/home-assistant-astro-weather"
+  moon_entity: "sensor.mesic_foceni_predpoved"
+  moon_horizon_days: 45
+  moon_interference_illumination_pct: 15.0
+  moon_interference_altitude_deg: 0.0
+  publish_homeassistant_entities: true
+  weather_entity: "sensor.astro_weather_detail"
+  decision_entity: "sensor.astro_vhodnost_foceni"
+  decision_nights: 3
+  min_good_block_hours: 4.0
+  max_start_delay_minutes: 90
+  prep_minutes: 45
+  good_score: 70
+  marginal_score: 50
+  disagreement_warn: 35
+  disagreement_bad: 55
+  wind_warn_ms: 8.0
+  wind_bad_ms: 12.0
+  use_moon: true
+  use_aerosols: true
+  use_seeing: true
+  aerosol_refresh_minutes: 180
+  aod_warn: 0.30
+  aod_bad: 0.40
+  seeing_warn_arcsec: 1.8
+  seeing_bad_arcsec: 2.5
+  install_dashboard_cards: true
+  debug: false
+schema:
+  latitude: float
+  longitude: float
+  altitude: int
+  timezone: str
+  refresh_minutes: "int(10,180)"
+  horizon_hours: "int(24,120)"
+  met_user_agent: str
+  moon_entity: str
+  moon_horizon_days: "int(3,60)"
+  moon_interference_illumination_pct: "float(0,100)"
+  moon_interference_altitude_deg: "float(-5,30)"
+  publish_homeassistant_entities: bool
+  weather_entity: str
+  decision_entity: str
+  decision_nights: "int(1,5)"
+  min_good_block_hours: float
+  max_start_delay_minutes: "int(0,360)"
+  prep_minutes: "int(0,240)"
+  good_score: "int(0,100)"
+  marginal_score: "int(0,100)"
+  disagreement_warn: "int(0,100)"
+  disagreement_bad: "int(0,100)"
+  wind_warn_ms: float
+  wind_bad_ms: float
+  use_moon: bool
+  use_aerosols: bool
+  use_seeing: bool
+  aerosol_refresh_minutes: "int(60,360)"
+  aod_warn: "float(0.11,4.99)"
+  aod_bad: "float(0.12,5.0)"
+  seeing_warn_arcsec: "float(1.0,7.99)"
+  seeing_bad_arcsec: "float(1.01,8.0)"
+  install_dashboard_cards: bool
+  debug: bool
