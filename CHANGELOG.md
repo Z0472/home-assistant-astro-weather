@@ -1,3 +1,9 @@
+## 12.1.6 - 2026-09-09
+- Dashboard cards are force-copied to /config/www on every add-on start, even when old files already exist.
+- Startup log now includes the first line of each copied card, making the active card version visible in the add-on log.
+- The add-on now tries to register Lovelace resources automatically through the Home Assistant API.
+- Dashboard resource cache URLs are now astro-start-card v19 and moon-forecast-card v21.
+
 ## 12.1.5 - 2026-09-09
 - Bumped dashboard-card cache versions to astro-start-card v18 and moon-forecast-card v20.
 - Dashboard card source links display CAMS/Open-Meteo and 7Timer only.
