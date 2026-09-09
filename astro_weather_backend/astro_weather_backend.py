@@ -37,14 +37,20 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.7"
+APP_VERSION = "12.1.8"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
 DASHBOARD_CARD_FILES = ("astro-start-card.js", "moon-forecast-card.js")
-DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card.js?v=20", "/local/moon-forecast-card.js?v=22")
+DASHBOARD_CARD_INSTALLS = (
+    ("astro-start-card.js", "astro-start-card.js"),
+    ("astro-start-card.js", "astro-start-card-v20.js"),
+    ("moon-forecast-card.js", "moon-forecast-card.js"),
+    ("moon-forecast-card.js", "moon-forecast-card-v22.js"),
+)
+DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card-v20.js", "/local/moon-forecast-card-v22.js")
 RAD = math.pi / 180.0
 DEG = 180.0 / math.pi
 J2000 = 2451545.0
@@ -125,7 +131,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.7 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.8 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -228,9 +234,9 @@ def install_dashboard_cards(options: dict[str, Any]) -> None:
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
         copied: list[str] = []
-        for filename in DASHBOARD_CARD_FILES:
-            source = DASHBOARD_CARDS_DIR / filename
-            target = target_dir / filename
+        for source_filename, target_filename in DASHBOARD_CARD_INSTALLS:
+            source = DASHBOARD_CARDS_DIR / source_filename
+            target = target_dir / target_filename
             if not source.exists():
                 log(f"KARTY VAROVANI: zdrojova karta {source} chybi.")
                 continue
@@ -242,7 +248,7 @@ def install_dashboard_cards(options: dict[str, Any]) -> None:
                 first_line = source_bytes.splitlines()[0].decode("utf-8", "replace")[:120]
             except Exception:
                 first_line = "verzi se nepodarilo precist"
-            copied.append(f"{filename} [{first_line}]")
+            copied.append(f"{target_filename} [{first_line}]")
 
         if copied:
             log(f"KARTY: prepsano v /config/www: {' | '.join(copied)}")
@@ -290,8 +296,14 @@ def home_assistant_api_request(
         return text
 
 
-def lovelace_resource_base(url: str) -> str:
-    return str(url or "").split("?", 1)[0].strip()
+def lovelace_resource_key(url: str) -> str:
+    base = str(url or "").split("?", 1)[0].strip()
+    filename = base.rsplit("/", 1)[-1]
+    if filename.startswith("astro-start-card"):
+        return "astro-start-card"
+    if filename.startswith("moon-forecast-card"):
+        return "moon-forecast-card"
+    return base
 
 
 def ensure_lovelace_resources(options: dict[str, Any]) -> None:
@@ -300,8 +312,8 @@ def ensure_lovelace_resources(options: dict[str, Any]) -> None:
         return
 
     desired = {
-        "/local/astro-start-card.js": "/local/astro-start-card.js?v=20",
-        "/local/moon-forecast-card.js": "/local/moon-forecast-card.js?v=22",
+        "astro-start-card": "/local/astro-start-card-v20.js",
+        "moon-forecast-card": "/local/moon-forecast-card-v22.js",
     }
 
     try:
@@ -318,10 +330,10 @@ def ensure_lovelace_resources(options: dict[str, Any]) -> None:
         present: list[str] = []
         warnings: list[str] = []
 
-        for base_url, wanted_url in desired.items():
+        for resource_key, wanted_url in desired.items():
             matches = [
                 row for row in rows
-                if lovelace_resource_base(str(row.get("url", ""))) == base_url
+                if lovelace_resource_key(str(row.get("url", ""))) == resource_key
             ]
 
             exact = [row for row in matches if str(row.get("url", "")) == wanted_url]
@@ -341,7 +353,7 @@ def ensure_lovelace_resources(options: dict[str, Any]) -> None:
                         )
                         changed.append(wanted_url)
                     except Exception as exc:
-                        warnings.append(f"{base_url}: nelze prepsat resource {resource_id}: {exc}")
+                        warnings.append(f"{resource_key}: nelze prepsat resource {resource_id}: {exc}")
                 else:
                     try:
                         home_assistant_api_request(
@@ -351,7 +363,7 @@ def ensure_lovelace_resources(options: dict[str, Any]) -> None:
                         )
                         changed.append(wanted_url)
                     except Exception as exc:
-                        warnings.append(f"{base_url}: nelze pridat resource: {exc}")
+                        warnings.append(f"{resource_key}: nelze pridat resource: {exc}")
 
             for duplicate in duplicates:
                 resource_id = str(duplicate.get("id", "")).strip()
