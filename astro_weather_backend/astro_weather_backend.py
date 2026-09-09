@@ -37,13 +37,14 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.5"
+APP_VERSION = "12.1.6"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
 DASHBOARD_CARD_FILES = ("astro-start-card.js", "moon-forecast-card.js")
+DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card.js?v=19", "/local/moon-forecast-card.js?v=21")
 RAD = math.pi / 180.0
 DEG = 180.0 / math.pi
 J2000 = 2451545.0
@@ -124,7 +125,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.4 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.6 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -151,6 +152,7 @@ def load_options() -> dict[str, Any]:
         "seeing_warn_arcsec": 1.8,
         "seeing_bad_arcsec": 2.5,
         "install_dashboard_cards": True,
+        "install_lovelace_resources": True,
         "debug": False,
     }
     try:
@@ -204,6 +206,7 @@ def load_options() -> dict[str, Any]:
         raise ValueError("Prahy musí splňovat 1.0 <= seeing_warn_arcsec < seeing_bad_arcsec <= 8.0")
     defaults["seeing_warn_arcsec"], defaults["seeing_bad_arcsec"] = seeing_warn, seeing_bad
     defaults["install_dashboard_cards"] = bool(defaults["install_dashboard_cards"])
+    defaults["install_lovelace_resources"] = bool(defaults.get("install_lovelace_resources", True))
     defaults["debug"] = bool(defaults["debug"])
     return defaults
 
@@ -225,26 +228,107 @@ def install_dashboard_cards(options: dict[str, Any]) -> None:
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
         copied: list[str] = []
-        unchanged: list[str] = []
         for filename in DASHBOARD_CARD_FILES:
             source = DASHBOARD_CARDS_DIR / filename
             target = target_dir / filename
             if not source.exists():
                 log(f"KARTY VAROVANI: zdrojova karta {source} chybi.")
                 continue
+
             source_bytes = source.read_bytes()
-            if target.exists() and target.read_bytes() == source_bytes:
-                unchanged.append(filename)
-                continue
             target.write_bytes(source_bytes)
-            copied.append(filename)
+            first_line = ""
+            try:
+                first_line = source_bytes.splitlines()[0].decode("utf-8", "replace")[:120]
+            except Exception:
+                first_line = "verzi se nepodarilo precist"
+            copied.append(f"{filename} [{first_line}]")
 
         if copied:
-            log(f"KARTY: zapsano do /config/www: {', '.join(copied)}")
-        elif unchanged:
-            log("KARTY: /config/www uz obsahuje aktualni dashboard karty.")
+            log(f"KARTY: prepsano v /config/www: {' | '.join(copied)}")
+        else:
+            log("KARTY VAROVANI: zadna dashboard karta nebyla zapsana.")
     except Exception as exc:
         log(f"KARTY CHYBA: nelze zapsat dashboard karty do /config/www: {exc}")
+
+
+def home_assistant_api_request(
+    path: str,
+    *,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+    timeout: int = 20,
+) -> Any:
+    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("SUPERVISOR_TOKEN neni dostupny; zkontroluj homeassistant_api: true")
+
+    body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    request = urllib.request.Request(
+        "http://supervisor/core/api" + path,
+        data=body,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:250]
+        raise RuntimeError(f"HA API {method} {path} -> HTTP {exc.code}: {detail}") from exc
+
+    if not raw:
+        return None
+    text = raw.decode("utf-8", "replace")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+
+def ensure_lovelace_resources(options: dict[str, Any]) -> None:
+    if not options.get("install_lovelace_resources", True):
+        log("KARTY RESOURCE: automaticka registrace Lovelace resources je vypnuta.")
+        return
+
+    try:
+        resources = home_assistant_api_request("/config/lovelace/resources")
+        if isinstance(resources, dict):
+            rows = resources.get("resources") or resources.get("data") or []
+        elif isinstance(resources, list):
+            rows = resources
+        else:
+            rows = []
+
+        existing = {
+            str(row.get("url", ""))
+            for row in rows
+            if isinstance(row, dict)
+        }
+
+        created: list[str] = []
+        present: list[str] = []
+        for url in DASHBOARD_CARD_RESOURCE_URLS:
+            if url in existing:
+                present.append(url)
+                continue
+            home_assistant_api_request(
+                "/config/lovelace/resources",
+                method="POST",
+                payload={"res_type": "module", "url": url},
+            )
+            created.append(url)
+
+        if created:
+            log(f"KARTY RESOURCE: pridano do Lovelace resources: {', '.join(created)}")
+        elif present:
+            log("KARTY RESOURCE: Lovelace resources uz obsahuji aktualni dashboard karty.")
+    except Exception as exc:
+        log(f"KARTY RESOURCE VAROVANI: automaticka registrace selhala: {exc}")
 
 
 def http_get(url: str, *, user_agent: str, timeout: int = 60) -> bytes:
@@ -2330,7 +2414,7 @@ def filtered_decision() -> dict[str, Any]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "AstroWeatherBackend/12.1.4"
+    server_version = f"AstroWeatherBackend/{APP_VERSION}"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Keep normal request logging quiet; backend refresh logs are enough.
@@ -2383,6 +2467,7 @@ def main() -> None:
 
     log(f"Astro Weather Backend {APP_VERSION}")
     install_dashboard_cards(options)
+    ensure_lovelace_resources(options)
     log(
         f"Lokalita {options['latitude']:.4f}, {options['longitude']:.4f}, "
         f"{options['altitude']} m; refresh {options['refresh_minutes']} min"
