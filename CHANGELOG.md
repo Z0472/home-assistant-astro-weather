@@ -1,3 +1,8 @@
+## 12.1.7 - 2026-09-09
+- Lovelace resource auto-install now updates existing astro card resource URLs instead of adding duplicates.
+- Dashboard resource cache URLs are now astro-start-card v20 and moon-forecast-card v22.
+- This avoids an old cached card registering the custom element before the new module loads.
+
 ## 12.1.6 - 2026-09-09
 - Dashboard cards are force-copied to /config/www on every add-on start, even when old files already exist.
 - Startup log now includes the first line of each copied card, making the active card version visible in the add-on log.
