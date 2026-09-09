@@ -1,4 +1,4 @@
-// astro-start-card v18 - direct CAMS/Open-Meteo and 7Timer source links.
+// astro-start-card v19 - direct CAMS/Open-Meteo and 7Timer source links.
 class AstroStartCard extends HTMLElement {
   constructor() {
     super();
@@ -774,7 +774,7 @@ window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "astro-start-card")) {
   window.customCards.push({
     type: "astro-start-card",
-    name: "Astro Start Decision Card v18",
+    name: "Astro Start Decision Card v19",
     description: "Centrální rozhodnutí observatoře včetně AOD 550 a seeingu.",
     preview: false,
   });
