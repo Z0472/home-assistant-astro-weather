@@ -1,3 +1,8 @@
+## 12.1.5 - 2026-09-09
+- Bumped dashboard-card cache versions to astro-start-card v18 and moon-forecast-card v20.
+- Dashboard card source links display CAMS/Open-Meteo and 7Timer only.
+- Documentation now uses Lovelace resources with `?v=18` and `?v=20`.
+
 # Changelog
 
 ## 12.1.4 - 2026-09-09
