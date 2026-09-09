@@ -1,4 +1,4 @@
-// Moon Forecast Card v19 - direct CAMS/Open-Meteo and 7Timer source links.
+// Moon Forecast Card v20 - direct CAMS/Open-Meteo and 7Timer source links.
 class MoonForecastCard extends HTMLElement {
   constructor() {
     super();
@@ -273,7 +273,7 @@ class MoonForecastCard extends HTMLElement {
 
   _skySourceLinks() {
     const links = [
-      { url: "https://open-meteo.com/en/docs/air-quality-api", label: "CAMS" },
+      { url: "https://open-meteo.com/en/docs/air-quality-api", label: "CAMS/Open-Meteo" },
       { url: "https://www.7timer.info/doc.php?lang=en", label: "7Timer" },
     ];
     return links.map((item) =>
