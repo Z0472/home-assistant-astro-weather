@@ -81,8 +81,25 @@ class AerosolTests(unittest.TestCase):
             installed = Path(config_dir) / "www"
             self.assertEqual(
                 sorted(path.name for path in installed.iterdir()),
-                ["astro-start-card-v20.js", "moon-forecast-card-v22.js"],
+                ["astro-start-card-v20.js", "moon-forecast-card-v23.js"],
             )
+
+    def test_moon_card_picker_has_current_version_and_working_defaults(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        bundled = repository_root.joinpath(
+            "astro_weather_backend/cards/moon-forecast-card.js"
+        ).read_text(encoding="utf-8")
+        downloadable = repository_root.joinpath(
+            "cards/moon-forecast-card-v23.txt"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual(bundled, downloadable)
+        self.assertIn("Moon Forecast Card v23", bundled)
+        self.assertIn('name: "Moon Forecast Card v23"', bundled)
+        self.assertIn("static getStubConfig()", bundled)
+        self.assertIn('entity: "sensor.mesic_foceni_predpoved"', bundled)
+        self.assertIn('weather_entity: "sensor.astro_weather_detail"', bundled)
+        self.assertIn('decision_entity: "sensor.astro_vhodnost_foceni"', bundled)
 
     def test_missing_entities_are_republished_from_cached_state(self):
         weather = {"state": "ok", "generated_at": "2026-09-10T08:00:00Z", "forecast": []}
