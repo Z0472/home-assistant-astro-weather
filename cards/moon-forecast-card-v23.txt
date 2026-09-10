@@ -1,5 +1,14 @@
-// Moon Forecast Card v22 - direct CAMS/Open-Meteo and 7Timer source links.
+// Moon Forecast Card v23 - direct CAMS/Open-Meteo and 7Timer source links.
 class MoonForecastCard extends HTMLElement {
+  static getStubConfig() {
+    return {
+      entity: "sensor.mesic_foceni_predpoved",
+      weather_entity: "sensor.astro_weather_detail",
+      decision_entity: "sensor.astro_vhodnost_foceni",
+      days: 45,
+    };
+  }
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -1417,11 +1426,17 @@ if (!customElements.get("moon-forecast-card")) {
 }
 
 window.customCards = window.customCards || [];
-if (!window.customCards.some((c) => c.type === "moon-forecast-card")) {
-  window.customCards.push({
-    type: "moon-forecast-card",
-    name: "Astro Forecast Card v19",
-    description: "Měsíc + centrální rozhodnutí, CAMS AOD 550 a 7Timer seeing.",
-    preview: false,
-  });
+const moonForecastCardRegistration = {
+  type: "moon-forecast-card",
+  name: "Moon Forecast Card v23",
+  description: "Měsíc + centrální rozhodnutí, CAMS AOD 550 a 7Timer seeing.",
+  preview: false,
+};
+const registeredMoonForecastCard = window.customCards.find(
+  (card) => card.type === moonForecastCardRegistration.type,
+);
+if (registeredMoonForecastCard) {
+  Object.assign(registeredMoonForecastCard, moonForecastCardRegistration);
+} else {
+  window.customCards.push(moonForecastCardRegistration);
 }
