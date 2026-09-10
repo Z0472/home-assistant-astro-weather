@@ -18,17 +18,14 @@ home-assistant, addon, astronomy, astrophotography, weather, aladin, cams, moon,
 
 ## Current Version
 
-**Astro Weather Backend 12.1.8**
+**Astro Weather Backend 12.1.9**
 
 This version is designed for a clean Home Assistant install:
 
-- no external Moon integration,
-- no `moon_photo_forecast.py`,
-- no `moon_forecast.yaml`,
-- no `astro_weather_backend.yaml` REST package,
-- no `numpy`, `skyfield`, or `de440.bsp`,
-- no SkyAccuracy dependency,
-- dashboard card files are installed by the add-on.
+- the backend calculates the Moon and astronomical night internally,
+- weather, Moon and the imaging decision are published directly to Home Assistant,
+- dashboard card files are installed by the add-on,
+- Lovelace resources are added once through the Home Assistant dashboard settings.
 
 The backend app publishes these Home Assistant entities itself through the Supervisor API:
 
@@ -55,7 +52,9 @@ https://github.com/Z0472/home-assistant-astro-weather
 4. Install **Astro Weather Backend** from the store.
 5. Open the add-on configuration and set at least `latitude`, `longitude`, `altitude` and `timezone`.
 6. Start the add-on.
-7. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
+7. Wait until the log shows both `MESIC INTERNI` and `HA ENTITY: publikovano`.
+8. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
+9. Continue with **Dashboard Resource Activation** below.
 
 Future upgrades are handled by Home Assistant through **Check for updates** or **Auto update**. A new release only needs a higher version in `astro_weather_backend/config.yaml`.
 
@@ -73,12 +72,10 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-When `install_dashboard_cards: true` is enabled, the add-on also creates `/config/www` if needed and writes:
+When `install_dashboard_cards: true` is enabled, the add-on also creates `/config/www` if needed and installs exactly these two versioned files:
 
 ```text
-/config/www/astro-start-card.js
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card.js
 /config/www/moon-forecast-card-v22.js
 ```
 
@@ -89,7 +86,8 @@ The JavaScript files are copied automatically. Lovelace resources are still a on
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
+KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v22.js [...]
+HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
 2. In a browser, verify that Home Assistant can serve the files:
@@ -114,7 +112,11 @@ Both URLs should show JavaScript source, not `404: Not Found`.
 | `/local/astro-start-card-v20.js` | JavaScript module |
 | `/local/moon-forecast-card-v22.js` | JavaScript module |
 
-5. Refresh the browser page. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
+Use exactly one resource entry for each card and remove every older entry whose URL is not identical to one of the two paths above.
+
+5. Restart Home Assistant. This first restart is required when the add-on created `/config/www` after Home Assistant had already started.
+6. Wait up to one minute. The add-on checks the three published states and restores them automatically after a Home Assistant restart.
+7. Verify the entities in **Developer Tools -> States**, then add the card YAML below.
 
 ## Dashboard Card YAML
 
@@ -174,15 +176,17 @@ SkyAccuracy.cz is no longer used. If Open-Meteo/CAMS or 7Timer is unavailable, s
 
 ## Troubleshooting
 
-If the dashboard says `Custom element doesn't exist: astro-start-card`, Home Assistant has not loaded the JavaScript resource. Check that the file URL returns JavaScript, check the resource entry, then refresh the browser cache.
+If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that the versioned file URL returns JavaScript, keep only the exact versioned resource entry shown above, and restart Home Assistant.
 
-If the card loads but shows missing entities, wait for the add-on to finish the first forecast refresh and check that these entities exist in **Developer Tools -> States**:
+If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. After a Home Assistant restart, version 12.1.9 restores missing states within one minute. Check these entities in **Developer Tools -> States**:
 
 ```text
 sensor.astro_weather_detail
 sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
+
+If they are still missing, restart **Astro Weather Backend** once and check the add-on log for `HA ENTITY CHYBA`.
 
 ## Tests
 
