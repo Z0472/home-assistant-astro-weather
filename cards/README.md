@@ -3,13 +3,13 @@
 The current card sources are kept here as TXT files for easy download and inspection:
 
 - `astro-start-card-v20.txt`
-- `moon-forecast-card-v22.txt`
+- `moon-forecast-card-v23.txt`
 
 The same cards are bundled inside the add-on image and copied automatically on startup to:
 
 ```text
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card-v22.js
+/config/www/moon-forecast-card-v23.js
 ```
 
 The TXT files are still useful as a manual fallback, but the normal install path is the add-on.
@@ -23,7 +23,7 @@ In Home Assistant open **Settings -> Dashboards -> Resources** and add:
 | URL | Resource type |
 | --- | --- |
 | `/local/astro-start-card-v20.js` | JavaScript module |
-| `/local/moon-forecast-card-v22.js` | JavaScript module |
+| `/local/moon-forecast-card-v23.js` | JavaScript module |
 
 If the Resources page is not visible, try the direct Home Assistant path:
 
@@ -83,7 +83,7 @@ Open these URLs in the same Home Assistant browser session:
 
 ```text
 https://YOUR-HA/local/astro-start-card-v20.js
-https://YOUR-HA/local/moon-forecast-card-v22.js
+https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
 They must show JavaScript source. If they return `404: Not Found`, the add-on has not copied the files yet or `install_dashboard_cards` is disabled.
