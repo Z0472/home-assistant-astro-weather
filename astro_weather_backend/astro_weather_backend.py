@@ -37,17 +37,25 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.10"
+APP_VERSION = "12.1.11"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
+ASTRO_START_CARD_VERSION = 21
+MOON_FORECAST_CARD_VERSION = 23
 DASHBOARD_CARD_INSTALLS = (
-    ("astro-start-card.js", "astro-start-card-v20.js"),
-    ("moon-forecast-card.js", "moon-forecast-card-v23.js"),
+    ("astro-start-card.js", f"astro-start-card-v{ASTRO_START_CARD_VERSION}.js"),
+    ("moon-forecast-card.js", f"moon-forecast-card-v{MOON_FORECAST_CARD_VERSION}.js"),
 )
+CARD_LOADER_SOURCE = "astro-weather-cards-loader.js"
+CARD_LOADER_FILENAME = "astro-weather-cards-loader.js"
+CARD_MANIFEST_FILENAME = "astro-weather-cards-manifest.json"
+CARD_LOADER_RESOURCE_URL = f"/local/{CARD_LOADER_FILENAME}"
 ENTITY_WATCHDOG_SECONDS = 60
+LOVELACE_RESOURCE_RETRY_SECONDS = 30
+LOVELACE_RESOURCE_RETRY_COUNT = 10
 RAD = math.pi / 180.0
 DEG = 180.0 / math.pi
 J2000 = 2451545.0
@@ -129,7 +137,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.10 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.11 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -156,9 +164,9 @@ def load_options() -> dict[str, Any]:
         "seeing_warn_arcsec": 1.8,
         "seeing_bad_arcsec": 2.5,
         "install_dashboard_cards": True,
-        # Retained only so upgrades from 12.1.8 accept the old option.
-        # Lovelace resources are configured manually in Home Assistant.
-        "install_lovelace_resources": False,
+        # Retained for upgrade compatibility. From 12.1.11 it controls only
+        # creation on a clean install; existing Astro resources are migrated.
+        "install_lovelace_resources": True,
         "debug": False,
     }
     try:
@@ -217,28 +225,30 @@ def load_options() -> dict[str, Any]:
     return defaults
 
 
-def install_dashboard_cards(options: dict[str, Any]) -> None:
+def install_dashboard_cards(options: dict[str, Any]) -> bool:
     if not options.get("install_dashboard_cards", True):
         log("KARTY: automaticke kopirovani je vypnute.")
-        return
+        return False
 
     if not HA_CONFIG_DIR.exists():
         log("KARTY VAROVANI: /ha_config neni pripojene, karty nelze zapsat do /config/www.")
-        return
+        return False
 
     if not DASHBOARD_CARDS_DIR.exists():
         log("KARTY VAROVANI: /app/cards neexistuje, v image chybi dashboard karty.")
-        return
+        return False
 
     target_dir = HA_CONFIG_DIR / "www"
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
         copied: list[str] = []
+        card_sources_ready = True
         for source_filename, target_filename in DASHBOARD_CARD_INSTALLS:
             source = DASHBOARD_CARDS_DIR / source_filename
             target = target_dir / target_filename
             if not source.exists():
                 log(f"KARTY VAROVANI: zdrojova karta {source} chybi.")
+                card_sources_ready = False
                 continue
 
             source_bytes = source.read_bytes()
@@ -250,12 +260,274 @@ def install_dashboard_cards(options: dict[str, Any]) -> None:
                 first_line = "verzi se nepodarilo precist"
             copied.append(f"{target_filename} [{first_line}]")
 
+        loader_source = DASHBOARD_CARDS_DIR / CARD_LOADER_SOURCE
+        if loader_source.exists():
+            loader_target = target_dir / CARD_LOADER_FILENAME
+            loader_target.write_bytes(loader_source.read_bytes())
+            copied.append(CARD_LOADER_FILENAME)
+        else:
+            log(f"KARTY VAROVANI: zdrojovy loader {loader_source} chybi.")
+
+        manifest = {
+            "schema": 1,
+            "backend_version": APP_VERSION,
+            "cards": [
+                {
+                    "type": "astro-start-card",
+                    "version": ASTRO_START_CARD_VERSION,
+                    "url": f"/local/astro-start-card-v{ASTRO_START_CARD_VERSION}.js",
+                },
+                {
+                    "type": "moon-forecast-card",
+                    "version": MOON_FORECAST_CARD_VERSION,
+                    "url": f"/local/moon-forecast-card-v{MOON_FORECAST_CARD_VERSION}.js",
+                },
+            ],
+        }
+        manifest_target = target_dir / CARD_MANIFEST_FILENAME
+        manifest_target.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        copied.append(CARD_MANIFEST_FILENAME)
+
+        compatibility_loader = (
+            "// Astro Weather Cards compatibility loader.\n"
+            f'import "{CARD_LOADER_RESOURCE_URL}";\n'
+        )
+        migrated_files: list[str] = []
+        current_targets = {target for _, target in DASHBOARD_CARD_INSTALLS}
+        current_versions = {
+            "astro-start-card": ASTRO_START_CARD_VERSION,
+            "moon-forecast-card": MOON_FORECAST_CARD_VERSION,
+        }
+        for prefix, current_version in current_versions.items():
+            candidates = [target_dir / f"{prefix}.js"]
+            candidates.extend(target_dir.glob(f"{prefix}-v*.js"))
+            for legacy_target in candidates:
+                legacy_filename = legacy_target.name
+                if legacy_filename in current_targets or not legacy_target.exists():
+                    continue
+                version_match = re.fullmatch(rf"{re.escape(prefix)}-v(\d+)\.js", legacy_filename)
+                if version_match and int(version_match.group(1)) > current_version:
+                    continue
+                legacy_target.write_text(compatibility_loader, encoding="utf-8")
+                migrated_files.append(legacy_filename)
+
         if copied:
             log(f"KARTY: prepsano v /config/www: {' | '.join(copied)}")
         else:
             log("KARTY VAROVANI: zadna dashboard karta nebyla zapsana.")
+        if migrated_files:
+            log(
+                "KARTY: stare resource soubory prevedeny na automaticky loader: "
+                + ", ".join(migrated_files)
+            )
+        return (
+            card_sources_ready
+            and loader_source.exists()
+            and manifest_target.exists()
+            and all((target_dir / target).exists() for _, target in DASHBOARD_CARD_INSTALLS)
+        )
     except Exception as exc:
         log(f"KARTY CHYBA: nelze zapsat dashboard karty do /config/www: {exc}")
+        return False
+
+
+class LovelaceResourceUnsupported(RuntimeError):
+    """Raised when Home Assistant does not expose storage resource commands."""
+
+
+def _websocket_json(message: Any) -> dict[str, Any]:
+    if isinstance(message, bytes):
+        message = message.decode("utf-8", "replace")
+    parsed = json.loads(str(message))
+    if not isinstance(parsed, dict):
+        raise RuntimeError("HA WebSocket vratil neocekavanou odpoved")
+    return parsed
+
+
+def _lovelace_ws_call(socket: Any, message_id: int, command: str, **payload: Any) -> Any:
+    socket.send(json.dumps({"id": message_id, "type": command, **payload}))
+    while True:
+        response = _websocket_json(socket.recv())
+        if response.get("type") != "result" or response.get("id") != message_id:
+            continue
+        if response.get("success"):
+            return response.get("result")
+
+        error = response.get("error") if isinstance(response.get("error"), dict) else {}
+        code = str(error.get("code", "unknown_error"))
+        message = str(error.get("message", "bez detailu"))
+        if code == "unknown_command":
+            raise LovelaceResourceUnsupported(message)
+        raise RuntimeError(f"HA WebSocket {command}: {code}: {message}")
+
+
+def _is_astro_card_resource(url: Any) -> bool:
+    clean = str(url or "").split("?", 1)[0].split("#", 1)[0].strip()
+    if clean == CARD_LOADER_RESOURCE_URL:
+        return True
+    return bool(
+        re.fullmatch(
+            r"/local/(?:astro-start-card|moon-forecast-card)(?:-v\d+)?\.js",
+            clean,
+        )
+    )
+
+
+def _sync_lovelace_loader_resource(socket: Any, resources: list[dict[str, Any]], *, allow_create: bool) -> list[str]:
+    managed = [row for row in resources if _is_astro_card_resource(row.get("url"))]
+    exact = [
+        row for row in managed
+        if str(row.get("url", "")).split("?", 1)[0].split("#", 1)[0].strip()
+        == CARD_LOADER_RESOURCE_URL
+    ]
+    actions: list[str] = []
+    next_id = 2
+
+    if exact:
+        keeper = exact[0]
+        keeper_id = str(keeper.get("id", "")).strip()
+        if not keeper_id:
+            raise RuntimeError("Aktualni Lovelace resource nema id")
+        if keeper.get("type") != "module":
+            _lovelace_ws_call(
+                socket,
+                next_id,
+                "lovelace/resources/update",
+                resource_id=keeper_id,
+                res_type="module",
+                url=CARD_LOADER_RESOURCE_URL,
+            )
+            next_id += 1
+            actions.append("opraven typ loaderu")
+    elif managed:
+        keeper = managed[0]
+        keeper_id = str(keeper.get("id", "")).strip()
+        if not keeper_id:
+            raise RuntimeError("Stary Lovelace resource nema id")
+        old_url = str(keeper.get("url", ""))
+        _lovelace_ws_call(
+            socket,
+            next_id,
+            "lovelace/resources/update",
+            resource_id=keeper_id,
+            res_type="module",
+            url=CARD_LOADER_RESOURCE_URL,
+        )
+        next_id += 1
+        actions.append(f"{old_url} -> {CARD_LOADER_RESOURCE_URL}")
+    elif allow_create:
+        created = _lovelace_ws_call(
+            socket,
+            next_id,
+            "lovelace/resources/create",
+            res_type="module",
+            url=CARD_LOADER_RESOURCE_URL,
+        )
+        next_id += 1
+        if not isinstance(created, dict) or not str(created.get("id", "")).strip():
+            raise RuntimeError("Home Assistant nevytvoril resource s platnym id")
+        keeper = created
+        keeper_id = str(created["id"])
+        actions.append(f"pridano {CARD_LOADER_RESOURCE_URL}")
+    else:
+        return []
+
+    for duplicate in managed:
+        duplicate_id = str(duplicate.get("id", "")).strip()
+        if not duplicate_id or duplicate_id == keeper_id:
+            continue
+        old_url = str(duplicate.get("url", ""))
+        _lovelace_ws_call(
+            socket,
+            next_id,
+            "lovelace/resources/delete",
+            resource_id=duplicate_id,
+        )
+        next_id += 1
+        actions.append(f"odstraneno {old_url}")
+
+    return actions
+
+
+def ensure_lovelace_loader_resource(options: dict[str, Any]) -> list[str]:
+    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("SUPERVISOR_TOKEN neni dostupny; zkontroluj homeassistant_api: true")
+
+    try:
+        import websocket as websocket_client
+    except ImportError as exc:
+        raise RuntimeError("v image chybi Python websocket-client") from exc
+
+    socket = websocket_client.create_connection(
+        "ws://supervisor/core/websocket",
+        timeout=15,
+        suppress_origin=True,
+        http_no_proxy=["supervisor"],
+    )
+    try:
+        hello = _websocket_json(socket.recv())
+        if hello.get("type") != "auth_required":
+            raise RuntimeError("HA WebSocket nezahajil autentizaci")
+        socket.send(json.dumps({"type": "auth", "access_token": token}))
+        auth = _websocket_json(socket.recv())
+        if auth.get("type") != "auth_ok":
+            raise RuntimeError(f"HA WebSocket autentizace selhala: {auth.get('message', auth.get('type'))}")
+
+        listed = _lovelace_ws_call(socket, 1, "lovelace/resources/list")
+        if not isinstance(listed, list):
+            raise RuntimeError("HA WebSocket nevratil seznam Lovelace resources")
+        resources = [row for row in listed if isinstance(row, dict)]
+        has_existing_astro_resource = any(
+            _is_astro_card_resource(row.get("url")) for row in resources
+        )
+        allow_create = bool(options.get("install_lovelace_resources", True))
+        if not allow_create and not has_existing_astro_resource:
+            return []
+        actions = _sync_lovelace_loader_resource(
+            socket,
+            resources,
+            allow_create=allow_create,
+        )
+        if has_existing_astro_resource and not actions:
+            return [f"{CARD_LOADER_RESOURCE_URL} je aktualni"]
+        return actions
+    finally:
+        socket.close()
+
+
+def lovelace_resource_worker(options: dict[str, Any]) -> None:
+    if not options.get("install_dashboard_cards", True):
+        return
+
+    for attempt in range(1, LOVELACE_RESOURCE_RETRY_COUNT + 1):
+        try:
+            actions = ensure_lovelace_loader_resource(options)
+            if actions:
+                log("KARTY RESOURCE: " + " | ".join(actions))
+            elif options.get("install_lovelace_resources", True):
+                log(f"KARTY RESOURCE: {CARD_LOADER_RESOURCE_URL} je aktualni.")
+            else:
+                log("KARTY RESOURCE: automaticke vytvoreni je vypnute a zadny stary Astro resource nebyl nalezen.")
+            return
+        except LovelaceResourceUnsupported:
+            log(
+                "KARTY RESOURCE VAROVANI: Home Assistant ma resources v YAML rezimu; "
+                f"pridej {CARD_LOADER_RESOURCE_URL} do lovelace.resources."
+            )
+            return
+        except Exception as exc:
+            if attempt >= LOVELACE_RESOURCE_RETRY_COUNT:
+                log(f"KARTY RESOURCE CHYBA: automaticka registrace selhala: {exc}")
+                return
+            log(
+                f"KARTY RESOURCE: Home Assistant zatim neni pripraven ({exc}); "
+                f"dalsi pokus za {LOVELACE_RESOURCE_RETRY_SECONDS} s."
+            )
+            time.sleep(LOVELACE_RESOURCE_RETRY_SECONDS)
 
 
 def http_get(url: str, *, user_agent: str, timeout: int = 60) -> bytes:
@@ -1787,6 +2059,7 @@ def score_hour(
         "metTotal": round_or_none(mt),
         "aladinTotal": round_or_none(at),
         "disagreement": round_or_none(disagreement),
+        "strongDisagreement": strong_disagreement,
         "effectiveCloud": round_or_none(effective_cloud),
         "dewMargin": round_or_none(dew_margin),
         "fog": round_or_none(fog),
@@ -1867,6 +2140,7 @@ def analyze_night(
             "reason": "Pro tuto noc není hodinová meteorologická předpověď.",
             "usableHours": 0.0,
             "uncertainHours": 0.0,
+            "modelDisagreementHours": 0.0,
             "metAvg": None,
             "aladinAvg": None,
             "modelCoverage": 0.0,
@@ -1933,6 +2207,28 @@ def analyze_night(
 
     usable_hours = sum(h["duration"] for h in hours if h["status"] in {"good", "partial"})
     uncertain_hours = sum(h["duration"] for h in hours if h["status"] == "uncertain")
+    model_disagreement_rows = [h for h in hours if h.get("strongDisagreement")]
+    model_disagreement_hours = sum(h["duration"] for h in model_disagreement_rows)
+
+    def model_disagreement_reason() -> str | None:
+        if not model_disagreement_rows:
+            return None
+        worst = max(
+            model_disagreement_rows,
+            key=lambda hour: safe_float(hour.get("disagreement")) or 0.0,
+        )
+        difference = safe_float(worst.get("disagreement")) or 0.0
+        met_value = safe_float(worst.get("metTotal"))
+        aladin_value = safe_float(worst.get("aladinTotal"))
+        values = ""
+        if met_value is not None and aladin_value is not None:
+            values = f" (MET {met_value:.0f} %, ALADIN {aladin_value:.0f} %)"
+        return (
+            f"Modely MET a ALADIN se během {model_disagreement_hours:.1f} h výrazně "
+            f"rozcházejí; největší rozdíl je {difference:.0f} p. b.{values}. "
+            "Proto je verdikt NEJISTÉ a před spuštěním je nutné zkontrolovat "
+            "aktuální satelit nebo kamery."
+        )
 
     # Zobrazovane nocni prumery pocitame casove vazene podle skutecneho prekryvu
     # hodinove predpovedi s astronomickou noci. Prvni/posledni castecna hodina tak
@@ -2007,7 +2303,7 @@ def analyze_night(
         else:
             decision = "uncertain"
             label = "NEJISTÉ"
-            reason = "Okno je dost dlouhé, ale jistota modelů nebo datové pokrytí není dostatečné."
+            reason = model_disagreement_reason() or "Okno je dost dlouhé, ale jistota modelů nebo datové pokrytí není dostatečné."
     elif best_block is not None and best_block["hours"] >= min_block and best_block["start"] > deadline:
         decision = "bad"
         label = "NESPOUŠTĚT"
@@ -2019,7 +2315,7 @@ def analyze_night(
     ):
         decision = "uncertain"
         label = "NEJISTÉ"
-        reason = "Část noci může být použitelná, ale podmínky nejsou dost stabilní pro jisté spuštění."
+        reason = model_disagreement_reason() or "Část noci může být použitelná, ale podmínky nejsou dost stabilní pro jisté spuštění."
 
     if options["use_aerosols"] and decision != "good":
         bad_aod_hours = sum(h["duration"] for h in hours if h["aerosolApplied"] and h["aod550"] >= options["aod_bad"])
@@ -2064,6 +2360,7 @@ def analyze_night(
         "deadline": iso_z(deadline),
         "usableHours": round(usable_hours, 2),
         "uncertainHours": round(uncertain_hours, 2),
+        "modelDisagreementHours": round(model_disagreement_hours, 2),
         "decision": decision,
         "label": label,
         "reason": reason,
@@ -2458,7 +2755,14 @@ def main() -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     log(f"Astro Weather Backend {APP_VERSION}")
-    install_dashboard_cards(options)
+    cards_ready = install_dashboard_cards(options)
+    if cards_ready:
+        resource_worker = threading.Thread(
+            target=lovelace_resource_worker,
+            args=(options,),
+            daemon=True,
+        )
+        resource_worker.start()
     log(
         f"Lokalita {options['latitude']:.4f}, {options['longitude']:.4f}, "
         f"{options['altitude']} m; refresh {options['refresh_minutes']} min"
