@@ -1,4 +1,4 @@
-# Astro Weather Backend 12.1.10
+# Astro Weather Backend 12.1.11
 
 Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, direct weather sources, automatic dashboard-card file installation, and repository-based updates.
 
@@ -10,7 +10,10 @@ Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, dire
   - `sensor.astro_vhodnost_foceni`
   - `sensor.mesic_foceni_predpoved`
 - `sensor.mesic_foceni_predpoved` is kept for dashboard-card compatibility, but it is no longer an input dependency.
-- The add-on installs only the current versioned dashboard card files to `/config/www`.
+- The add-on installs the current versioned dashboard cards plus one stable loader and manifest to `/config/www`.
+- In normal Lovelace storage mode it creates or migrates its resource entry automatically.
+- Hour-card colors now use a blue-to-gray cloud-cover palette instead of traffic-light colors.
+- An uncertain verdict caused by MET/ALADIN disagreement states the conflicting values explicitly.
 - A watchdog restores the published states within one minute after Home Assistant Core restarts.
 - Card source links point directly to CAMS/Open-Meteo and 7Timer.
 - The default MET User-Agent is generic and does not publish a personal domain or observatory name.
@@ -78,9 +81,9 @@ Use your real observing location values here.
 6. Start the add-on.
 7. Wait until the log shows both `MESIC INTERNI` and `HA ENTITY: publikovano`.
 8. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
-9. Continue with **Activate Dashboard Resources** below.
+9. Continue with **Check Dashboard Resource** below.
 
-For later upgrades use **Check for updates** or enable **Auto update**. The Supervisor compares the installed app version with `astro_weather_backend/config.yaml`.
+For later upgrades use **Check for updates** or enable **Auto update**. The Supervisor compares the installed app version with `astro_weather_backend/config.yaml`; the stable card loader selects the new versioned JavaScript files automatically.
 
 Important: Home Assistant Supervisor must be able to read the repository directly. If this repository is private, make it public or publish the add-on in a public release repository before installing from Store.
 
@@ -101,31 +104,42 @@ sensor.mesic_foceni_predpoved
 The add-on image contains the dashboard cards and writes them on startup to:
 
 ```text
-/config/www/astro-start-card-v20.js
+/config/www/astro-start-card-v21.js
 /config/www/moon-forecast-card-v23.js
+/config/www/astro-weather-cards-loader.js
+/config/www/astro-weather-cards-manifest.json
 ```
 
 The option `install_dashboard_cards` controls this behavior and is enabled by default. If `/config/www` does not exist, the add-on creates it.
 
-Lovelace resources are configured once in Home Assistant as shown below. The add-on does not try to register them automatically.
+In Lovelace storage mode, the add-on uses Home Assistant's authenticated WebSocket API to maintain this single JavaScript module resource:
 
-## Activate Dashboard Resources
+```text
+/local/astro-weather-cards-loader.js
+```
+
+Existing Astro resource entries with physical version numbers are migrated to the loader and duplicate Astro entries are removed. Resources belonging to other cards are not changed.
+
+## Check Dashboard Resource
 
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v23.js [...]
+KARTY: prepsano v /config/www: astro-start-card-v21.js [...], moon-forecast-card-v23.js [...], astro-weather-cards-loader.js, astro-weather-cards-manifest.json
+KARTY RESOURCE: ... /local/astro-weather-cards-loader.js ...
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
 2. Open these URLs in the same Home Assistant browser session:
 
 ```text
-https://YOUR-HA/local/astro-start-card-v20.js
+https://YOUR-HA/local/astro-weather-cards-loader.js
+https://YOUR-HA/local/astro-weather-cards-manifest.json
+https://YOUR-HA/local/astro-start-card-v21.js
 https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
-They should show JavaScript source. If they show `404: Not Found`, the files have not been copied yet or `install_dashboard_cards` is disabled.
+The loader and cards should show JavaScript source and the manifest should show JSON. If they show `404: Not Found`, the files have not been copied yet or `install_dashboard_cards` is disabled.
 
 3. Open **Settings -> Dashboards -> Resources**. In some Home Assistant versions this screen is available directly at:
 
@@ -133,16 +147,17 @@ They should show JavaScript source. If they show `404: Not Found`, the files hav
 /config/lovelace/resources
 ```
 
-4. Add these resources as **JavaScript module**:
+4. Verify that there is exactly this one Astro resource:
 
 | URL | Resource type |
 | --- | --- |
-| `/local/astro-start-card-v20.js` | JavaScript module |
-| `/local/moon-forecast-card-v23.js` | JavaScript module |
+| `/local/astro-weather-cards-loader.js` | JavaScript module |
 
-Use exactly one resource entry for each card and remove every older entry whose URL is not identical to one of the two paths above.
+The add-on creates or migrates this entry automatically. If `lovelace.resource_mode` is `yaml`, automatic storage changes are unavailable; add the loader once to the YAML `resources` section instead.
 
-5. Restart Home Assistant. This first restart is required when the add-on created `/config/www` after Home Assistant had already started.
+If the log ends with `KARTY RESOURCE CHYBA`, add only `/local/astro-weather-cards-loader.js` manually as a JavaScript module and remove the two old Astro Weather entries. This is a fallback; normal storage-mode installations need no manual resource edit.
+
+5. Restart Home Assistant after the first installation, or refresh the Home Assistant frontend after an upgrade. The first restart is required when the add-on created `/config/www` after Home Assistant had already started.
 6. Wait up to one minute for the add-on to restore its published states after the Home Assistant restart.
 7. Verify all three entities in **Developer Tools -> States**, then add the card YAML below.
 
@@ -197,8 +212,9 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.10
+Astro Weather Backend 12.1.11
 KARTY: prepsano v /config/www: ...
+KARTY RESOURCE: ... /local/astro-weather-cards-loader.js ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing
 MESIC INTERNI: ...
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
