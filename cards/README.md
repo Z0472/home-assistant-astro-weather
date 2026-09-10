@@ -8,9 +8,7 @@ The current card sources are kept here as TXT files for easy download and inspec
 The same cards are bundled inside the add-on image and copied automatically on startup to:
 
 ```text
-/config/www/astro-start-card.js
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card.js
 /config/www/moon-forecast-card-v22.js
 ```
 
@@ -18,7 +16,7 @@ The TXT files are still useful as a manual fallback, but the normal install path
 
 ## Enable Lovelace Resources
 
-The add-on copies JavaScript files into `/config/www` and tries to add these Lovelace resource entries automatically. If they are missing, add them manually:
+The add-on copies the JavaScript files into `/config/www`. Add the Lovelace resource entries manually:
 
 In Home Assistant open **Settings -> Dashboards -> Resources** and add:
 
@@ -33,7 +31,7 @@ If the Resources page is not visible, try the direct Home Assistant path:
 /config/lovelace/resources
 ```
 
-After adding or changing a resource, refresh the browser. If the card still does not load, use Ctrl+F5 or open the resource URL directly and check that it shows JavaScript, not `404`.
+Use exactly one entry for each card and remove every older entry whose URL is not identical to one of the two paths above. Then restart Home Assistant. Open the resource URL directly to verify that it shows JavaScript rather than `404`.
 
 ## Card YAML
 
