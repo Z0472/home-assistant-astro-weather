@@ -1,3 +1,10 @@
+## 12.1.9 - 2026-09-10
+- Install only the physical versioned card files `astro-start-card-v20.js` and `moon-forecast-card-v22.js`.
+- Remove the unsupported Lovelace resource REST registration attempt; dashboard resources are a documented one-time manual setting.
+- Restore the three published Home Assistant states automatically within one minute after Home Assistant Core restarts.
+- Rewrite the installation sequence to include the required first Home Assistant restart and exact verification steps.
+- Remove obsolete `?v=` cache-suffix advice and legacy standalone-file migration details from the current installation guide.
+
 ## 12.1.8 - 2026-09-09
 - Lovelace dashboard resources now use physical versioned files: `/local/astro-start-card-v20.js` and `/local/moon-forecast-card-v22.js`.
 - The add-on writes both compatibility card names and versioned card names into `/config/www` on startup.
