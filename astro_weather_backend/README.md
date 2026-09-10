@@ -1,4 +1,4 @@
-# Astro Weather Backend 12.1.9
+# Astro Weather Backend 12.1.10
 
 Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, direct weather sources, automatic dashboard-card file installation, and repository-based updates.
 
@@ -102,7 +102,7 @@ The add-on image contains the dashboard cards and writes them on startup to:
 
 ```text
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card-v22.js
+/config/www/moon-forecast-card-v23.js
 ```
 
 The option `install_dashboard_cards` controls this behavior and is enabled by default. If `/config/www` does not exist, the add-on creates it.
@@ -114,7 +114,7 @@ Lovelace resources are configured once in Home Assistant as shown below. The add
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v22.js [...]
+KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v23.js [...]
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
@@ -122,7 +122,7 @@ HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni
 
 ```text
 https://YOUR-HA/local/astro-start-card-v20.js
-https://YOUR-HA/local/moon-forecast-card-v22.js
+https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
 They should show JavaScript source. If they show `404: Not Found`, the files have not been copied yet or `install_dashboard_cards` is disabled.
@@ -138,7 +138,7 @@ They should show JavaScript source. If they show `404: Not Found`, the files hav
 | URL | Resource type |
 | --- | --- |
 | `/local/astro-start-card-v20.js` | JavaScript module |
-| `/local/moon-forecast-card-v22.js` | JavaScript module |
+| `/local/moon-forecast-card-v23.js` | JavaScript module |
 
 Use exactly one resource entry for each card and remove every older entry whose URL is not identical to one of the two paths above.
 
@@ -197,7 +197,7 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.9
+Astro Weather Backend 12.1.10
 KARTY: prepsano v /config/www: ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing
 MESIC INTERNI: ...
