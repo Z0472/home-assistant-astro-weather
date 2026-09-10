@@ -185,8 +185,6 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 - Open-Meteo Air Quality API: CAMS AOD 550 and dust as surface concentration in `ug/m3`.
 - 7Timer ASTRO JSON API: seeing and transparency index.
 
-SkyAccuracy.cz is no longer used. If Open-Meteo/CAMS or 7Timer is unavailable, stale, or changes shape, AOD/seeing are ignored and the decision continues from MET + ALADIN + internal Moon.
-
 ## Troubleshooting
 
 If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that the loader, manifest and current versioned file URLs open correctly, keep only the stable loader resource shown above, and restart Home Assistant.
