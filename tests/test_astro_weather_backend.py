@@ -1,11 +1,13 @@
-"""Offline checks: python3 -m unittest -v test_aerosols.py"""
+"""Offline checks for Astro Weather Backend."""
 import json
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "astro_weather_backend"))
 import astro_weather_backend as b
 
 
@@ -31,7 +33,7 @@ class AerosolTests(unittest.TestCase):
         return b.analyze_night(self.night, rows, [], self.options)
 
     def open_meteo_document(self, times, aod, dust=None):
-        return {"latitude": 48.925, "longitude": 14.432,
+        return {"latitude": self.options["latitude"], "longitude": self.options["longitude"],
                 "hourly": {"time": times, "aerosol_optical_depth": aod, "dust": dust or [None] * len(times)}}
 
     def seven_timer_document(self, rows, init="2026090816"):
@@ -65,6 +67,45 @@ class AerosolTests(unittest.TestCase):
             ],
         )
         self.assertEqual(publish.call_args_list[2].args[2]["friendly_name"], "Měsíc focení předpověď")
+
+    def test_dashboard_install_writes_only_versioned_files(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as config_dir:
+            source = Path(source_dir)
+            source.joinpath("astro-start-card.js").write_text("astro v20", encoding="utf-8")
+            source.joinpath("moon-forecast-card.js").write_text("moon v22", encoding="utf-8")
+            with patch.object(b, "DASHBOARD_CARDS_DIR", source), \
+                    patch.object(b, "HA_CONFIG_DIR", Path(config_dir)), \
+                    patch.object(b, "log"):
+                b.install_dashboard_cards(self.options)
+
+            installed = Path(config_dir) / "www"
+            self.assertEqual(
+                sorted(path.name for path in installed.iterdir()),
+                ["astro-start-card-v20.js", "moon-forecast-card-v22.js"],
+            )
+
+    def test_missing_entities_are_republished_from_cached_state(self):
+        weather = {"state": "ok", "generated_at": "2026-09-10T08:00:00Z", "forecast": []}
+        decision = {"state": "SPUSTIT", "machine_state": "good", "daily": []}
+        moon = {"state": "7.2 h", "attributes": {"daily": [], "hourly": []}}
+        with patch.object(b, "STATE", weather), \
+                patch.object(b, "DECISION_STATE", decision), \
+                patch.object(b, "MOON_STATE", moon), \
+                patch.object(b, "home_assistant_state_exists", side_effect=lambda entity_id: entity_id == "sensor.astro_weather_detail"), \
+                patch.object(b, "publish_homeassistant_entities") as publish, \
+                patch.object(b, "log"):
+            changed = b.republish_missing_homeassistant_entities(self.options)
+
+        self.assertTrue(changed)
+        publish.assert_called_once()
+
+    def test_entity_watchdog_does_nothing_when_all_entities_exist(self):
+        with patch.object(b, "home_assistant_state_exists", return_value=True), \
+                patch.object(b, "publish_homeassistant_entities") as publish:
+            changed = b.republish_missing_homeassistant_entities(self.options)
+
+        self.assertFalse(changed)
+        publish.assert_not_called()
 
     def test_thresholds(self):
         for aod, expected in [(0, "good"), (0.1, "good"), (0.2, "good"),
@@ -163,7 +204,7 @@ class AerosolTests(unittest.TestCase):
         self.assertEqual(row["aod550"], 0)
         self.assertIsNone(row["dust_aod550"])
         self.assertEqual(row["dust_ugm3"], 0)
-        doc["latitude"] = 50.5
+        doc["latitude"] = self.options["latitude"] + 2
         with self.assertRaises(ValueError):
             b.parse_open_meteo_air_quality(doc, self.options)
 
