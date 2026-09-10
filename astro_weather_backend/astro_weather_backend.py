@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.9"
+APP_VERSION = "12.1.10"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
@@ -45,7 +45,7 @@ HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
 DASHBOARD_CARD_INSTALLS = (
     ("astro-start-card.js", "astro-start-card-v20.js"),
-    ("moon-forecast-card.js", "moon-forecast-card-v22.js"),
+    ("moon-forecast-card.js", "moon-forecast-card-v23.js"),
 )
 ENTITY_WATCHDOG_SECONDS = 60
 RAD = math.pi / 180.0
@@ -129,7 +129,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.9 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.10 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
