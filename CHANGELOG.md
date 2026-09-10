@@ -1,3 +1,12 @@
+## 12.1.11 - 2026-09-10
+- Replace traffic-light hour backgrounds with a blue-to-gray cloud-cover palette; the number remains the total imaging suitability score.
+- Read score thresholds from backend settings so the card legend matches `good_score` and `marginal_score`.
+- Explain `NEJISTÉ` verdicts caused by a strong MET/ALADIN disagreement with the affected duration and the largest conflicting hourly values.
+- Bump the main decision card to `astro-start-card-v21.js`.
+- Add a stable `/local/astro-weather-cards-loader.js` resource and no-cache manifest so future physical card versions load without editing Lovelace URLs.
+- Create or migrate the loader resource through Home Assistant's authenticated WebSocket API in Lovelace storage mode, consolidating only Astro Weather resource entries.
+- Convert existing v20/v22 files to compatibility loaders during upgrade as a fallback for the currently deployed resource paths.
+
 ## 12.1.10 - 2026-09-10
 - Fix the Moon forecast card name in Home Assistant's card picker; it now reports its real version instead of the stale v19 label.
 - Add a default Moon/weather/decision entity configuration so the Moon forecast card works when selected directly from the card picker.
