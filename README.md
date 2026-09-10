@@ -59,10 +59,6 @@ https://github.com/Z0472/home-assistant-astro-weather
 
 Future upgrades are handled by Home Assistant through **Check for updates** or **Auto update**. The add-on updates its cards and the stable loader automatically; users do not change versioned Lovelace resource URLs.
 
-Important: Home Assistant Supervisor must be able to read this repository directly. If the repository is private, make it public or publish the add-on in a public release repository before installing from Store.
-
-The repository contains the required root `repository.yaml` and the add-on directory `astro_weather_backend/`.
-
 ## What The Add-on Creates
 
 After the first successful start the add-on publishes:
