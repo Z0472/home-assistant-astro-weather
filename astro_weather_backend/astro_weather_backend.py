@@ -37,20 +37,17 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.8"
+APP_VERSION = "12.1.9"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
-DASHBOARD_CARD_FILES = ("astro-start-card.js", "moon-forecast-card.js")
 DASHBOARD_CARD_INSTALLS = (
-    ("astro-start-card.js", "astro-start-card.js"),
     ("astro-start-card.js", "astro-start-card-v20.js"),
-    ("moon-forecast-card.js", "moon-forecast-card.js"),
     ("moon-forecast-card.js", "moon-forecast-card-v22.js"),
 )
-DASHBOARD_CARD_RESOURCE_URLS = ("/local/astro-start-card-v20.js", "/local/moon-forecast-card-v22.js")
+ENTITY_WATCHDOG_SECONDS = 60
 RAD = math.pi / 180.0
 DEG = 180.0 / math.pi
 J2000 = 2451545.0
@@ -109,6 +106,7 @@ DECISION_STATE: dict[str, Any] = {
     "reason": "Backend se spousti.",
     "daily": [],
 }
+MOON_STATE: dict[str, Any] = {}
 
 
 def utc_now() -> datetime:
@@ -131,7 +129,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.8 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.9 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -158,7 +156,9 @@ def load_options() -> dict[str, Any]:
         "seeing_warn_arcsec": 1.8,
         "seeing_bad_arcsec": 2.5,
         "install_dashboard_cards": True,
-        "install_lovelace_resources": True,
+        # Retained only so upgrades from 12.1.8 accept the old option.
+        # Lovelace resources are configured manually in Home Assistant.
+        "install_lovelace_resources": False,
         "debug": False,
     }
     try:
@@ -212,7 +212,7 @@ def load_options() -> dict[str, Any]:
         raise ValueError("Prahy musí splňovat 1.0 <= seeing_warn_arcsec < seeing_bad_arcsec <= 8.0")
     defaults["seeing_warn_arcsec"], defaults["seeing_bad_arcsec"] = seeing_warn, seeing_bad
     defaults["install_dashboard_cards"] = bool(defaults["install_dashboard_cards"])
-    defaults["install_lovelace_resources"] = bool(defaults.get("install_lovelace_resources", True))
+    defaults["install_lovelace_resources"] = bool(defaults.get("install_lovelace_resources", False))
     defaults["debug"] = bool(defaults["debug"])
     return defaults
 
@@ -258,138 +258,6 @@ def install_dashboard_cards(options: dict[str, Any]) -> None:
         log(f"KARTY CHYBA: nelze zapsat dashboard karty do /config/www: {exc}")
 
 
-def home_assistant_api_request(
-    path: str,
-    *,
-    method: str = "GET",
-    payload: dict[str, Any] | None = None,
-    timeout: int = 20,
-) -> Any:
-    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
-    if not token:
-        raise RuntimeError("SUPERVISOR_TOKEN neni dostupny; zkontroluj homeassistant_api: true")
-
-    body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    request = urllib.request.Request(
-        "http://supervisor/core/api" + path,
-        data=body,
-        method=method,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read()
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", "replace")[:250]
-        raise RuntimeError(f"HA API {method} {path} -> HTTP {exc.code}: {detail}") from exc
-
-    if not raw:
-        return None
-    text = raw.decode("utf-8", "replace")
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return text
-
-
-def lovelace_resource_key(url: str) -> str:
-    base = str(url or "").split("?", 1)[0].strip()
-    filename = base.rsplit("/", 1)[-1]
-    if filename.startswith("astro-start-card"):
-        return "astro-start-card"
-    if filename.startswith("moon-forecast-card"):
-        return "moon-forecast-card"
-    return base
-
-
-def ensure_lovelace_resources(options: dict[str, Any]) -> None:
-    if not options.get("install_lovelace_resources", True):
-        log("KARTY RESOURCE: automaticka registrace Lovelace resources je vypnuta.")
-        return
-
-    desired = {
-        "astro-start-card": "/local/astro-start-card-v20.js",
-        "moon-forecast-card": "/local/moon-forecast-card-v22.js",
-    }
-
-    try:
-        resources = home_assistant_api_request("/config/lovelace/resources")
-        if isinstance(resources, dict):
-            rows = resources.get("resources") or resources.get("data") or []
-        elif isinstance(resources, list):
-            rows = resources
-        else:
-            rows = []
-
-        rows = [row for row in rows if isinstance(row, dict)]
-        changed: list[str] = []
-        present: list[str] = []
-        warnings: list[str] = []
-
-        for resource_key, wanted_url in desired.items():
-            matches = [
-                row for row in rows
-                if lovelace_resource_key(str(row.get("url", ""))) == resource_key
-            ]
-
-            exact = [row for row in matches if str(row.get("url", "")) == wanted_url]
-            if exact:
-                present.append(wanted_url)
-                duplicates = [row for row in matches if row not in exact]
-            else:
-                duplicates = matches[1:]
-                row_to_update = matches[0] if matches else None
-                resource_id = str(row_to_update.get("id", "")).strip() if row_to_update else ""
-                if resource_id:
-                    try:
-                        home_assistant_api_request(
-                            f"/config/lovelace/resources/{urllib.parse.quote(resource_id, safe='')}",
-                            method="PUT",
-                            payload={"res_type": "module", "url": wanted_url},
-                        )
-                        changed.append(wanted_url)
-                    except Exception as exc:
-                        warnings.append(f"{resource_key}: nelze prepsat resource {resource_id}: {exc}")
-                else:
-                    try:
-                        home_assistant_api_request(
-                            "/config/lovelace/resources",
-                            method="POST",
-                            payload={"res_type": "module", "url": wanted_url},
-                        )
-                        changed.append(wanted_url)
-                    except Exception as exc:
-                        warnings.append(f"{resource_key}: nelze pridat resource: {exc}")
-
-            for duplicate in duplicates:
-                resource_id = str(duplicate.get("id", "")).strip()
-                old_url = str(duplicate.get("url", ""))
-                if not resource_id:
-                    warnings.append(f"{old_url}: duplicitni resource nema id, smaz rucne")
-                    continue
-                try:
-                    home_assistant_api_request(
-                        f"/config/lovelace/resources/{urllib.parse.quote(resource_id, safe='')}",
-                        method="DELETE",
-                    )
-                    changed.append(f"smazano {old_url}")
-                except Exception as exc:
-                    warnings.append(f"{old_url}: nelze smazat duplicitni resource {resource_id}: {exc}")
-
-        if changed:
-            log(f"KARTY RESOURCE: aktualizovano v Lovelace resources: {', '.join(changed)}")
-        elif present:
-            log("KARTY RESOURCE: Lovelace resources uz obsahuji aktualni dashboard karty.")
-        for warning in warnings:
-            log(f"KARTY RESOURCE VAROVANI: {warning}")
-    except Exception as exc:
-        log(f"KARTY RESOURCE VAROVANI: automaticka registrace selhala: {exc}")
-
-
 def http_get(url: str, *, user_agent: str, timeout: int = 60) -> bytes:
     request = urllib.request.Request(
         url,
@@ -425,6 +293,30 @@ def publish_home_assistant_state(entity_id: str, state: str, attributes: dict[st
     )
     with urllib.request.urlopen(request, timeout=20) as response:
         response.read()
+
+
+def home_assistant_state_exists(entity_id: str) -> bool:
+    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("SUPERVISOR_TOKEN neni dostupny; zkontroluj homeassistant_api: true")
+
+    quoted = urllib.parse.quote(entity_id, safe="")
+    request = urllib.request.Request(
+        f"http://supervisor/core/api/states/{quoted}",
+        method="GET",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            response.read()
+        return True
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise
 
 
 def publish_homeassistant_entities(
@@ -463,6 +355,35 @@ def publish_homeassistant_entities(
             "icon": "mdi:moon-waning-crescent",
         })
         publish_home_assistant_state(moon_entity, str(moon_doc.get("state", "BEZ DAT")), moon_attrs)
+
+
+def republish_missing_homeassistant_entities(options: dict[str, Any]) -> bool:
+    if not options["publish_homeassistant_entities"]:
+        return False
+
+    entity_ids = [
+        options.get("weather_entity"),
+        options.get("decision_entity"),
+        options.get("moon_entity"),
+    ]
+    entity_ids = [entity_id for entity_id in entity_ids if entity_id]
+    if not entity_ids:
+        return False
+
+    probe_entity = options.get("decision_entity") or entity_ids[0]
+    if home_assistant_state_exists(probe_entity):
+        return False
+
+    with STATE_LOCK:
+        if not STATE.get("generated_at") or not MOON_STATE:
+            return False
+        weather_state = json.loads(json.dumps(STATE, ensure_ascii=False))
+        decision_state = json.loads(json.dumps(DECISION_STATE, ensure_ascii=False))
+        moon_doc = json.loads(json.dumps(MOON_STATE, ensure_ascii=False))
+
+    publish_homeassistant_entities(options, weather_state, decision_state, moon_doc)
+    log(f"HA ENTITY: obnoveno po restartu Home Assistantu: {', '.join(entity_ids)}")
+    return True
 
 
 def safe_float(value: Any) -> float | None:
@@ -2416,6 +2337,9 @@ def refresh_once(options: dict[str, Any]) -> None:
         STATE.update(new_state)
         DECISION_STATE.clear()
         DECISION_STATE.update(decision)
+        MOON_STATE.clear()
+        if moon_doc is not None:
+            MOON_STATE.update(moon_doc)
 
     if moon_doc is not None:
         try:
@@ -2447,6 +2371,15 @@ def refresh_worker(options: dict[str, Any]) -> None:
         elapsed = time.monotonic() - started
         sleep_for = max(30.0, options["refresh_minutes"] * 60.0 - elapsed)
         time.sleep(sleep_for)
+
+
+def entity_watchdog_worker(options: dict[str, Any]) -> None:
+    while True:
+        time.sleep(ENTITY_WATCHDOG_SECONDS)
+        try:
+            republish_missing_homeassistant_entities(options)
+        except Exception as exc:
+            log(f"HA ENTITY KONTROLA VAROVANI: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -2526,7 +2459,6 @@ def main() -> None:
 
     log(f"Astro Weather Backend {APP_VERSION}")
     install_dashboard_cards(options)
-    ensure_lovelace_resources(options)
     log(
         f"Lokalita {options['latitude']:.4f}, {options['longitude']:.4f}, "
         f"{options['altitude']} m; refresh {options['refresh_minutes']} min"
@@ -2539,6 +2471,8 @@ def main() -> None:
 
     worker = threading.Thread(target=refresh_worker, args=(options,), daemon=True)
     worker.start()
+    entity_watchdog = threading.Thread(target=entity_watchdog_worker, args=(options,), daemon=True)
+    entity_watchdog.start()
 
     server = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
     log(f"HTTP API posloucha na 0.0.0.0:{HTTP_PORT}")
