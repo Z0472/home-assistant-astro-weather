@@ -1,3 +1,8 @@
+## 12.1.10 - 2026-09-10
+- Fix the Moon forecast card name in Home Assistant's card picker; it now reports its real version instead of the stale v19 label.
+- Add a default Moon/weather/decision entity configuration so the Moon forecast card works when selected directly from the card picker.
+- Bump the physical Moon card file to `moon-forecast-card-v23.js` so Home Assistant cannot reuse the broken cached card.
+
 ## 12.1.9 - 2026-09-10
 - Install only the physical versioned card files `astro-start-card-v20.js` and `moon-forecast-card-v22.js`.
 - Remove the unsupported Lovelace resource REST registration attempt; dashboard resources are a documented one-time manual setting.
