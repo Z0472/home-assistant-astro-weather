@@ -1,6 +1,6 @@
 # Home Assistant Astro Weather
 
-Home Assistant app/add-on for astrophotography planning. It combines MET Norway, CHMU ALADIN, internal Moon/night calculation, CAMS/Open-Meteo AOD 550, Open-Meteo dust concentration and 7Timer seeing into one practical decision: **SPUSTIT / NEJISTE / NESPOUSTET**.
+Home Assistant app/add-on for astrophotography planning. It combines MET Norway, CHMU ALADIN, internal Moon/night calculation, CAMS/Open-Meteo AOD 550, Open-Meteo dust concentration and 7Timer seeing into one practical decision: **SPUSTIT / NEJISTE / NESPOUSTET** (START / UNCERTAIN / DO NOT START).
 
 ## Repository Description
 
