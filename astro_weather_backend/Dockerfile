@@ -13,6 +13,7 @@ LABEL \
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
     && apk add --no-cache \
        python3 \
+       py3-websocket-client \
        ca-certificates \
        tzdata \
        eccodes
