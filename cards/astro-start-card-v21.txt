@@ -1,4 +1,4 @@
-// astro-start-card v20 - direct CAMS/Open-Meteo and 7Timer source links.
+// astro-start-card v21 - direct CAMS/Open-Meteo and 7Timer source links.
 class AstroStartCard extends HTMLElement {
   constructor() {
     super();
@@ -228,11 +228,22 @@ class AstroStartCard extends HTMLElement {
     return { cls: "overcast", label: "zataženo", icon: "mdi:cloud" };
   }
 
+  _scoreThresholds() {
+    const attrs = this._hass?.states?.[this._config.decision_entity]?.attributes || {};
+    const settings = attrs.settings || {};
+    const configuredGood = Number(settings.good_score);
+    const configuredMarginal = Number(settings.marginal_score);
+    return {
+      good: Number.isFinite(configuredGood) ? configuredGood : 70,
+      marginal: Number.isFinite(configuredMarginal) ? configuredMarginal : 50,
+    };
+  }
+
   _scoreMeaning(score) {
     if (!Number.isFinite(score)) return "bez hodnocení";
-    if (score >= 80) return "výborné";
-    if (score >= 60) return "dobré";
-    if (score >= 40) return "nejisté";
+    const thresholds = this._scoreThresholds();
+    if (score >= thresholds.good) return "vhodné";
+    if (score >= thresholds.marginal) return "hraniční";
     return "špatné";
   }
 
@@ -371,6 +382,7 @@ class AstroStartCard extends HTMLElement {
     if (Number(h?.fog) >= 20 || text.includes("mlha")) return pick("mlha", "bad");
     if (Number(h?.wind) >= windBad || text.includes("vítr")) return pick("vítr", baseTone);
     if (Number(h?.seeingArcsec) >= seeingBad || h?.seeingStatus === "bad" || text.includes("seeing")) return pick("seeing", baseTone);
+    if (h?.strongDisagreement) return pick("MET/ALADIN", "warning");
     if (Number(h?.aod550) >= aodBad || h?.aerosolStatus === "bad" || text.includes("zákal") || text.includes("aerosol")) return pick("AOD", baseTone);
     if (Number(h?.effectiveCloud) > 20 || text.includes("oblačnost")) return pick("oblačnost", baseTone);
     const dewMargin = Number(h?.dewMargin);
@@ -522,6 +534,7 @@ class AstroStartCard extends HTMLElement {
     const seeingInfo = this._seeingInfo(a);
     const showHourlyAod = ["full", "partial", "fallback"].includes(aerosolInfo.mode);
     const showHourlySeeing = ["full", "partial", "fallback"].includes(seeingInfo.mode);
+    const scoreThresholds = this._scoreThresholds();
     const strip = a.hours.map((h) => {
       const band = this._cloudBand(h.effectiveCloud);
       const limit = this._hourLimit(h);
@@ -609,7 +622,7 @@ class AstroStartCard extends HTMLElement {
         <span class="legend-item cloudy"><span class="legend-swatch"></span><ha-icon icon="mdi:weather-cloudy"></ha-icon><span>Oblačno</span></span>
         <span class="legend-item overcast"><span class="legend-swatch"></span><ha-icon icon="mdi:cloud"></ha-icon><span>Zataženo</span></span>
       </div>
-      <div class="score-help"><b>Skóre:</b> 80–100 výborné · 60–79 dobré · 40–59 nejisté · pod 40 špatné.</div>`;
+      <div class="score-help"><b>Skóre vhodnosti:</b> ${scoreThresholds.good}–100 vhodné · ${scoreThresholds.marginal}–${scoreThresholds.good - 1} hraniční · pod ${scoreThresholds.marginal} špatné. Barva a ikona vyjadřují pouze oblačnost.</div>`;
   }
 
   _render() {
@@ -715,11 +728,11 @@ class AstroStartCard extends HTMLElement {
         .legend-item { display:inline-flex; align-items:center; gap:5px; padding:4px 7px; border-radius:7px; border:1px solid var(--divider-color); font-size:.76rem; color:var(--secondary-text-color); }
         .legend-item ha-icon { --mdc-icon-size:17px; color:var(--primary-text-color); }
         .legend-swatch { width:9px; height:9px; border-radius:50%; display:inline-block; }
-        .legend-item.clear .legend-swatch { background:var(--success-color,#4caf50); }
-        .legend-item.mostly-clear .legend-swatch { background:#8bc34a; }
-        .legend-item.light-cloud .legend-swatch { background:#fdd835; }
-        .legend-item.cloudy .legend-swatch { background:var(--warning-color,#ff9800); }
-        .legend-item.overcast .legend-swatch { background:var(--error-color,#f44336); }
+        .legend-item.clear .legend-swatch { background:#1565c0; }
+        .legend-item.mostly-clear .legend-swatch { background:#3f7fa6; }
+        .legend-item.light-cloud .legend-swatch { background:#607d8b; }
+        .legend-item.cloudy .legend-swatch { background:#7b8085; }
+        .legend-item.overcast .legend-swatch { background:#a7aaad; }
         .score-help { margin-top:8px; color:var(--secondary-text-color); font-size:.80rem; }
         .score-help b { color:var(--primary-text-color); }
         .models b { color:var(--primary-text-color); }
@@ -734,11 +747,11 @@ class AstroStartCard extends HTMLElement {
         .hour-reason.good { color:var(--success-color,#4caf50); }
         .hour-reason.warning { color:var(--warning-color,#ff9800); }
         .hour-reason.bad { color:var(--error-color,#f44336); }
-        .hour.clear { background:color-mix(in srgb,var(--success-color,#4caf50) 20%,transparent); border-color:color-mix(in srgb,var(--success-color,#4caf50) 55%,var(--divider-color)); }
-        .hour.mostly-clear { background:color-mix(in srgb,#8bc34a 24%,transparent); border-color:color-mix(in srgb,#8bc34a 55%,var(--divider-color)); }
-        .hour.light-cloud { background:color-mix(in srgb,#fdd835 24%,transparent); border-color:color-mix(in srgb,#fdd835 55%,var(--divider-color)); }
-        .hour.cloudy { background:color-mix(in srgb,var(--warning-color,#ff9800) 22%,transparent); border-color:color-mix(in srgb,var(--warning-color,#ff9800) 55%,var(--divider-color)); }
-        .hour.overcast { background:color-mix(in srgb,var(--error-color,#f44336) 18%,transparent); border-color:color-mix(in srgb,var(--error-color,#f44336) 55%,var(--divider-color)); }
+        .hour.clear { background:color-mix(in srgb,#1565c0 24%,transparent); border-color:color-mix(in srgb,#1565c0 65%,var(--divider-color)); }
+        .hour.mostly-clear { background:color-mix(in srgb,#3f7fa6 24%,transparent); border-color:color-mix(in srgb,#3f7fa6 65%,var(--divider-color)); }
+        .hour.light-cloud { background:color-mix(in srgb,#607d8b 24%,transparent); border-color:color-mix(in srgb,#607d8b 65%,var(--divider-color)); }
+        .hour.cloudy { background:color-mix(in srgb,#7b8085 24%,transparent); border-color:color-mix(in srgb,#7b8085 65%,var(--divider-color)); }
+        .hour.overcast { background:color-mix(in srgb,#a7aaad 22%,transparent); border-color:color-mix(in srgb,#a7aaad 65%,var(--divider-color)); }
         .hour.unknown { background:color-mix(in srgb,var(--disabled-text-color,#9e9e9e) 16%,transparent); }
         .empty { padding:8px 0; color:var(--secondary-text-color); }
         @media(max-width:900px){ .nights{grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(210px,75%);} .grid{grid-template-columns:repeat(2,minmax(120px,1fr));} .detail-head{flex-direction:column;} .decision{text-align:left;} }
@@ -771,11 +784,17 @@ if (!customElements.get("astro-start-card")) {
 }
 
 window.customCards = window.customCards || [];
-if (!window.customCards.some((c) => c.type === "astro-start-card")) {
-  window.customCards.push({
-    type: "astro-start-card",
-    name: "Astro Start Decision Card v20",
-    description: "Centrální rozhodnutí observatoře včetně AOD 550 a seeingu.",
-    preview: false,
-  });
+const astroStartCardRegistration = {
+  type: "astro-start-card",
+  name: "Astro Start Decision Card v21",
+  description: "Centrální rozhodnutí observatoře včetně AOD 550 a seeingu.",
+  preview: false,
+};
+const registeredAstroStartCard = window.customCards.find(
+  (card) => card.type === astroStartCardRegistration.type,
+);
+if (registeredAstroStartCard) {
+  Object.assign(registeredAstroStartCard, astroStartCardRegistration);
+} else {
+  window.customCards.push(astroStartCardRegistration);
 }
