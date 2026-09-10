@@ -1,17 +1,17 @@
-# Astro Weather Backend 12.1.8
+# Astro Weather Backend 12.1.9
 
-Prepared 9 Sep 2026. Clean Home Assistant add-on version with internal Moon calculation, no SkyAccuracy dependency, automatic dashboard-card installation, and repository-based install/update instructions.
+Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, direct weather sources, automatic dashboard-card file installation, and repository-based updates.
 
 ## What Changed
 
 - The backend calculates astronomical night and Moon interference internally.
-- No `numpy`, `skyfield`, `de440.bsp`, Moon script, command line sensor, or Home Assistant package sensor is needed.
 - The backend publishes these Home Assistant entities through the Supervisor API:
   - `sensor.astro_weather_detail`
   - `sensor.astro_vhodnost_foceni`
   - `sensor.mesic_foceni_predpoved`
 - `sensor.mesic_foceni_predpoved` is kept for dashboard-card compatibility, but it is no longer an input dependency.
-- The add-on installs current dashboard card files to `/config/www` on startup when `install_dashboard_cards` is enabled.
+- The add-on installs only the current versioned dashboard card files to `/config/www`.
+- A watchdog restores the published states within one minute after Home Assistant Core restarts.
 - Card source links point directly to CAMS/Open-Meteo and 7Timer.
 - The default MET User-Agent is generic and does not publish a personal domain or observatory name.
 - The bundled latitude, longitude and altitude are public-safe sample defaults; set the real observing location in the app configuration.
@@ -47,7 +47,7 @@ Seeing:
 
 Moon:
 
-- calculated internally without external files,
+- calculated internally by the backend,
 - default interference starts at illumination >= `15 %` and Moon altitude above `0 deg`,
 - with `use_moon: false`, Moon data is still published but no longer vetoes imaging hours.
 
@@ -76,7 +76,9 @@ timezone: Europe/Prague
 Use your real observing location values here.
 
 6. Start the add-on.
-7. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
+7. Wait until the log shows both `MESIC INTERNI` and `HA ENTITY: publikovano`.
+8. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
+9. Continue with **Activate Dashboard Resources** below.
 
 For later upgrades use **Check for updates** or enable **Auto update**. The Supervisor compares the installed app version with `astro_weather_backend/config.yaml`.
 
@@ -94,29 +96,26 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-No `command_line`, REST sensor package, external Moon integration, Python script, `numpy`, `skyfield`, or `de440.bsp` is required.
-
 ## Dashboard Card Files
 
 The add-on image contains the dashboard cards and writes them on startup to:
 
 ```text
-/config/www/astro-start-card.js
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card.js
 /config/www/moon-forecast-card-v22.js
 ```
 
 The option `install_dashboard_cards` controls this behavior and is enabled by default. If `/config/www` does not exist, the add-on creates it.
 
-The add-on also tries to update existing Lovelace resources through the Home Assistant API so old cache entries are replaced instead of duplicated. If Home Assistant refuses that API call, add the Resources manually as shown below.
+Lovelace resources are configured once in Home Assistant as shown below. The add-on does not try to register them automatically.
 
 ## Activate Dashboard Resources
 
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: zapsano do /config/www: astro-start-card.js, moon-forecast-card.js
+KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v22.js [...]
+HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
 2. Open these URLs in the same Home Assistant browser session:
@@ -141,7 +140,11 @@ They should show JavaScript source. If they show `404: Not Found`, the files hav
 | `/local/astro-start-card-v20.js` | JavaScript module |
 | `/local/moon-forecast-card-v22.js` | JavaScript module |
 
-5. Refresh the browser. If Home Assistant still says `Custom element doesn't exist`, use Ctrl+F5 or increase the cache suffix, for example from `?v=17` to `?v=18`.
+Use exactly one resource entry for each card and remove every older entry whose URL is not identical to one of the two paths above.
+
+5. Restart Home Assistant. This first restart is required when the add-on created `/config/www` after Home Assistant had already started.
+6. Wait up to one minute for the add-on to restore its published states after the Home Assistant restart.
+7. Verify all three entities in **Developer Tools -> States**, then add the card YAML below.
 
 ## Dashboard Card YAML
 
@@ -194,25 +197,20 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.8
-KARTY: zapsano do /config/www: ...
+Astro Weather Backend 12.1.9
+KARTY: prepsano v /config/www: ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing
 MESIC INTERNI: ...
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
-## Manual Entity Refresh
+After a Home Assistant restart, the log can also contain:
 
-Use this in Home Assistant **Developer Tools -> Actions** in YAML mode:
-
-```yaml
-action: homeassistant.update_entity
-data:
-  entity_id:
-    - sensor.astro_weather_detail
-    - sensor.astro_vhodnost_foceni
-    - sensor.mesic_foceni_predpoved
+```text
+HA ENTITY: obnoveno po restartu Home Assistantu: ...
 ```
+
+If the entities are still missing after one minute, restart **Astro Weather Backend** once and check its log for `HA ENTITY CHYBA`.
 
 ## Development Checks
 
