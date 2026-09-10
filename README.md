@@ -18,7 +18,7 @@ home-assistant, addon, astronomy, astrophotography, weather, aladin, cams, moon,
 
 ## Current Version
 
-**Astro Weather Backend 12.1.9**
+**Astro Weather Backend 12.1.10**
 
 This version is designed for a clean Home Assistant install:
 
@@ -76,7 +76,7 @@ When `install_dashboard_cards: true` is enabled, the add-on also creates `/confi
 
 ```text
 /config/www/astro-start-card-v20.js
-/config/www/moon-forecast-card-v22.js
+/config/www/moon-forecast-card-v23.js
 ```
 
 The JavaScript files are copied automatically. Lovelace resources are still a one-time Home Assistant dashboard setting.
@@ -86,7 +86,7 @@ The JavaScript files are copied automatically. Lovelace resources are still a on
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v22.js [...]
+KARTY: prepsano v /config/www: astro-start-card-v20.js [...], moon-forecast-card-v23.js [...]
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
 
@@ -94,7 +94,7 @@ HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni
 
 ```text
 https://YOUR-HA/local/astro-start-card-v20.js
-https://YOUR-HA/local/moon-forecast-card-v22.js
+https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
 Both URLs should show JavaScript source, not `404: Not Found`.
@@ -110,7 +110,7 @@ Both URLs should show JavaScript source, not `404: Not Found`.
 | URL | Resource type |
 | --- | --- |
 | `/local/astro-start-card-v20.js` | JavaScript module |
-| `/local/moon-forecast-card-v22.js` | JavaScript module |
+| `/local/moon-forecast-card-v23.js` | JavaScript module |
 
 Use exactly one resource entry for each card and remove every older entry whose URL is not identical to one of the two paths above.
 
@@ -178,7 +178,7 @@ SkyAccuracy.cz is no longer used. If Open-Meteo/CAMS or 7Timer is unavailable, s
 
 If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that the versioned file URL returns JavaScript, keep only the exact versioned resource entry shown above, and restart Home Assistant.
 
-If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. After a Home Assistant restart, version 12.1.9 restores missing states within one minute. Check these entities in **Developer Tools -> States**:
+If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. After a Home Assistant restart, version 12.1.10 restores missing states within one minute. Check these entities in **Developer Tools -> States**:
 
 ```text
 sensor.astro_weather_detail
