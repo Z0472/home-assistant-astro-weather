@@ -21,14 +21,20 @@ jobs:
           python -m py_compile astro_weather_backend/weather_models.py
           python -m py_compile astro_weather_backend/cloud_consensus.py
           python -m py_compile astro_weather_backend/model_runtime.py
+          python -m py_compile astro_weather_backend/confidence_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
-        run: node --check astro_weather_backend/cards/astro-start-card-v23.js
+        run: |
+          node --check astro_weather_backend/cards/astro-start-card-v23.js
+          node --check astro_weather_backend/cards/astro-start-card-v24.js
+          node --check astro_weather_backend/cards/moon-forecast-card-v24.js
       - name: Stable 12.1 regression suite
         run: python -m unittest -v tests/test_astro_weather_backend.py
       - name: ICON and multi-model regression suite
         run: python -m unittest -v tests/test_model_consensus.py
+      - name: Confidence regression suite
+        run: python -m unittest -v tests/test_confidence_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.2.0 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.2.1 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
