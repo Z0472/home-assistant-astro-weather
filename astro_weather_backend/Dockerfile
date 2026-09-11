@@ -8,8 +8,8 @@ LABEL \
   io.hass.type="app" \
   io.hass.arch="${BUILD_ARCH}"
 
-# Používáme jen CLI nástroj grib_get z ecCodes, ne Python bindings.
-# Tím obejdeme nekompatibilitu Python wheelu eccodeslib v HA Core.
+# Používáme CLI nástroje ecCodes (grib_get + grib_ls), ne Python bindings.
+# grib_get čte ALADIN a grib_ls ověřuje, že lokalita leží u nativní sítě modelu.
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
     && apk add --no-cache \
        python3 \
@@ -20,6 +20,10 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/reposi
 
 WORKDIR /app
 COPY astro_weather_backend.py /app/astro_weather_backend.py
+COPY weather_models.py /app/weather_models.py
+COPY cloud_consensus.py /app/cloud_consensus.py
+COPY model_runtime.py /app/model_runtime.py
+COPY app.py /app/app.py
 COPY cards /app/cards
 
-CMD ["python3", "-u", "/app/astro_weather_backend.py"]
+CMD ["python3", "-u", "/app/app.py"]
