@@ -28,3 +28,5 @@ jobs:
         run: python -m unittest -v tests/test_astro_weather_backend.py
       - name: ICON and multi-model regression suite
         run: python -m unittest -v tests/test_model_consensus.py
+      - name: Build Home Assistant app container
+        run: docker build --build-arg BUILD_VERSION=12.2.0 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
