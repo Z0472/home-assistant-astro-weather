@@ -22,6 +22,8 @@ jobs:
           python -m py_compile astro_weather_backend/cloud_consensus.py
           python -m py_compile astro_weather_backend/model_runtime.py
           python -m py_compile astro_weather_backend/app.py
+      - name: Check card JavaScript syntax
+        run: node --check astro_weather_backend/cards/astro-start-card-v23.js
       - name: Stable 12.1 regression suite
         run: python -m unittest -v tests/test_astro_weather_backend.py
       - name: ICON and multi-model regression suite
