@@ -23,6 +23,7 @@ COPY astro_weather_backend.py /app/astro_weather_backend.py
 COPY weather_models.py /app/weather_models.py
 COPY cloud_consensus.py /app/cloud_consensus.py
 COPY model_runtime.py /app/model_runtime.py
+COPY confidence_patch.py /app/confidence_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
 
