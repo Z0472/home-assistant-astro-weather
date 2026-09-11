@@ -596,5 +596,16 @@ class AerosolTests(unittest.TestCase):
 
 
 
+    def test_missing_all_cloud_models_keeps_zero_score(self):
+        row = self.forecast(0.1)[0]
+        row["met"] = None
+        row["aladin"] = None
+        scored = b.score_hour(row, None, self.night, self.options)
+        self.assertEqual(scored["score"], 0)
+        self.assertEqual(scored["status"], "bad")
+        self.assertIsNone(scored["dominantPenalty"])
+
+
+
 if __name__ == "__main__":
     unittest.main()

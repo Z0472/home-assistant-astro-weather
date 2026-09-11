@@ -1969,7 +1969,11 @@ def score_hour(
         "aod": aerosol["aerosolPenalty"],
         "seeing": seeing["seeingPenalty"],
     }
-    score = max(0.0, min(100.0, 100.0 - sum(score_penalties.values())))
+    score = (
+        0.0
+        if effective_cloud is None
+        else max(0.0, min(100.0, 100.0 - sum(score_penalties.values())))
+    )
 
     reasons: list[str] = []
     hard_bad = False
@@ -2072,6 +2076,8 @@ def score_hour(
         dominant_penalty = {"key": "precip", "label": "srážky", "points": 100.0}
     elif moon_interferes:
         dominant_penalty = {"key": "moon", "label": "Měsíc", "points": 100.0}
+    elif effective_cloud is None:
+        dominant_penalty = None
     else:
         dominant_key, dominant_points = max(score_penalties.items(), key=lambda item: item[1])
         dominant_penalty = (
