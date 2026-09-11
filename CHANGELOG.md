@@ -1,3 +1,10 @@
+## 12.1.12 - 2026-09-11
+- Soften the dew-point-margin penalty: heated optics can tolerate dew risk, so low ΔT is now a warning about atmospheric haze/fog rather than an automatic near-stop.
+- Keep MET `fog_area_fraction` as the separate strong fog penalty/veto.
+- Publish per-hour `scorePenalties` plus `dominantPenalty` and show the largest point loss directly on each hourly tile.
+- Increase the default latest acceptable start of a four-hour good block from 90 to 120 minutes after astronomical darkness begins.
+- Bump the main decision card to `astro-start-card-v22.js`.
+
 ## 12.1.11 - 2026-09-10
 - Replace traffic-light hour backgrounds with a blue-to-gray cloud-cover palette; the number remains the total imaging suitability score.
 - Read score thresholds from backend settings so the card legend matches `good_score` and `marginal_score`.

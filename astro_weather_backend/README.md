@@ -1,4 +1,4 @@
-# Astro Weather Backend 12.1.11
+# Astro Weather Backend 12.1.12
 
 Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, direct weather sources, automatic dashboard-card file installation, and repository-based updates.
 
@@ -31,6 +31,14 @@ Prepared 10 Sep 2026. Home Assistant add-on with internal Moon calculation, dire
 SkyAccuracy.cz is not used in this version. If Open-Meteo/CAMS or 7Timer is unavailable, stale, or changes format, AOD/seeing are ignored and the decision continues from MET + ALADIN + internal Moon.
 
 Open-Meteo dust is not dust AOD 550. The backend stores it separately as `dust_ugm3` / `dustUgm3` and treats it as informational only.
+
+## Decision changes in 12.1.12
+
+- A continuous good block still has to be at least 4 hours long.
+- The default latest block start is 120 minutes after astronomical darkness begins.
+- Dew-point margin is a soft atmospheric haze/fog-risk factor because optics can be heated.
+- MET `fog_area_fraction` remains a separate strong fog penalty/veto.
+- Hourly output includes `scorePenalties` and `dominantPenalty`; the card shows the largest point loss.
 
 ## Default Rules
 
@@ -104,7 +112,7 @@ sensor.mesic_foceni_predpoved
 The add-on image contains the dashboard cards and writes them on startup to:
 
 ```text
-/config/www/astro-start-card-v21.js
+/config/www/astro-start-card-v22.js
 /config/www/moon-forecast-card-v23.js
 /config/www/astro-weather-cards-loader.js
 /config/www/astro-weather-cards-manifest.json
@@ -125,7 +133,7 @@ Existing Astro resource entries with physical version numbers are migrated to th
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: prepsano v /config/www: astro-start-card-v21.js [...], moon-forecast-card-v23.js [...], astro-weather-cards-loader.js, astro-weather-cards-manifest.json
+KARTY: prepsano v /config/www: astro-start-card-v22.js [...], moon-forecast-card-v23.js [...], astro-weather-cards-loader.js, astro-weather-cards-manifest.json
 KARTY RESOURCE: ... /local/astro-weather-cards-loader.js ...
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
@@ -135,7 +143,7 @@ HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni
 ```text
 https://YOUR-HA/local/astro-weather-cards-loader.js
 https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v21.js
+https://YOUR-HA/local/astro-start-card-v22.js
 https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
@@ -212,7 +220,7 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 The log should contain:
 
 ```text
-Astro Weather Backend 12.1.11
+Astro Weather Backend 12.1.12
 KARTY: prepsano v /config/www: ...
 KARTY RESOURCE: ... /local/astro-weather-cards-loader.js ...
 KVALITA OBLOHY: ... CAMS/Open-Meteo AOD, ... 7Timer seeing

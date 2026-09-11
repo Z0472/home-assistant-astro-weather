@@ -18,7 +18,7 @@ home-assistant, addon, astronomy, astrophotography, weather, aladin, cams, moon,
 
 ## Current Version
 
-**Astro Weather Backend 12.1.11**
+**Astro Weather Backend 12.1.12**
 
 This version is designed for a clean Home Assistant install:
 
@@ -72,7 +72,7 @@ sensor.mesic_foceni_predpoved
 When `install_dashboard_cards: true` is enabled, the add-on also creates `/config/www` if needed and installs the current versioned cards plus a stable loader and manifest:
 
 ```text
-/config/www/astro-start-card-v21.js
+/config/www/astro-start-card-v22.js
 /config/www/moon-forecast-card-v23.js
 /config/www/astro-weather-cards-loader.js
 /config/www/astro-weather-cards-manifest.json
@@ -91,7 +91,7 @@ On upgrade, older Astro resource entries such as `astro-start-card-v20.js`, `moo
 1. Start the add-on once and check the log for:
 
 ```text
-KARTY: prepsano v /config/www: astro-start-card-v21.js [...], moon-forecast-card-v23.js [...], astro-weather-cards-loader.js, astro-weather-cards-manifest.json
+KARTY: prepsano v /config/www: astro-start-card-v22.js [...], moon-forecast-card-v23.js [...], astro-weather-cards-loader.js, astro-weather-cards-manifest.json
 KARTY RESOURCE: ... /local/astro-weather-cards-loader.js ...
 HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni, sensor.mesic_foceni_predpoved
 ```
@@ -101,7 +101,7 @@ HA ENTITY: publikovano sensor.astro_weather_detail, sensor.astro_vhodnost_foceni
 ```text
 https://YOUR-HA/local/astro-weather-cards-loader.js
 https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v21.js
+https://YOUR-HA/local/astro-start-card-v22.js
 https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
@@ -185,7 +185,7 @@ To add a card manually: open the dashboard, choose **Edit dashboard -> Add card 
 
 If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that the loader, manifest and current versioned file URLs open correctly, keep only the stable loader resource shown above, and restart Home Assistant.
 
-If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. After a Home Assistant restart, version 12.1.11 restores missing states within one minute. Check these entities in **Developer Tools -> States**:
+If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. After a Home Assistant restart, version 12.1.12 restores missing states within one minute. Check these entities in **Developer Tools -> States**:
 
 ```text
 sensor.astro_weather_detail

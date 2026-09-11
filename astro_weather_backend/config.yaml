@@ -1,6 +1,6 @@
 name: "Astro Weather Backend"
 description: "Predpoved MET + CHMU ALADIN + interni Mesic + CAMS/Open-Meteo AOD + 7Timer seeing"
-version: "12.1.11"
+version: "12.1.12"
 slug: "astro_weather_backend"
 url: "https://github.com/Z0472/home-assistant-astro-weather"
 init: false
@@ -21,7 +21,7 @@ options:
   timezone: "Europe/Prague"
   refresh_minutes: 30
   horizon_hours: 72
-  met_user_agent: "AstroWeatherBackend/12.1.11 https://github.com/Z0472/home-assistant-astro-weather"
+  met_user_agent: "AstroWeatherBackend/12.1.12 https://github.com/Z0472/home-assistant-astro-weather"
   moon_entity: "sensor.mesic_foceni_predpoved"
   moon_horizon_days: 45
   moon_interference_illumination_pct: 15.0
@@ -31,7 +31,7 @@ options:
   decision_entity: "sensor.astro_vhodnost_foceni"
   decision_nights: 3
   min_good_block_hours: 4.0
-  max_start_delay_minutes: 90
+  max_start_delay_minutes: 120
   prep_minutes: 45
   good_score: 70
   marginal_score: 50

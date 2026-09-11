@@ -2,13 +2,13 @@
 
 The current card sources are kept here as TXT files for easy download and inspection:
 
-- `astro-start-card-v21.txt`
+- `astro-start-card-v22.txt`
 - `moon-forecast-card-v23.txt`
 
 The same cards are bundled inside the add-on image and copied automatically on startup to:
 
 ```text
-/config/www/astro-start-card-v21.js
+/config/www/astro-start-card-v22.js
 /config/www/moon-forecast-card-v23.js
 /config/www/astro-weather-cards-loader.js
 /config/www/astro-weather-cards-manifest.json
@@ -87,7 +87,7 @@ Open these URLs in the same Home Assistant browser session:
 ```text
 https://YOUR-HA/local/astro-weather-cards-loader.js
 https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v21.js
+https://YOUR-HA/local/astro-start-card-v22.js
 https://YOUR-HA/local/moon-forecast-card-v23.js
 ```
 
