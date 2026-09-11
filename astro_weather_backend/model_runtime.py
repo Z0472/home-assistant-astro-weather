@@ -125,7 +125,10 @@ def install(core: Any) -> None:
     core.APP_VERSION = RELEASE_VERSION
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     core.DASHBOARD_CARD_INSTALLS = (
-        ("astro-start-card.js", f"astro-start-card-v{ASTRO_CARD_VERSION}.js"),
+        # Keep the known-good v22 card as a private base module. The v23 module
+        # imports it and adds only ICON / multi-model presentation.
+        ("astro-start-card.js", "astro-start-card-base-v22.js"),
+        ("astro-start-card-v23.js", f"astro-start-card-v{ASTRO_CARD_VERSION}.js"),
         ("moon-forecast-card.js", f"moon-forecast-card-v{core.MOON_FORECAST_CARD_VERSION}.js"),
     )
     core.Handler.server_version = f"AstroWeatherBackend/{RELEASE_VERSION}"
