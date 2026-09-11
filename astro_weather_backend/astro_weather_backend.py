@@ -37,13 +37,13 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-APP_VERSION = "12.1.11"
+APP_VERSION = "12.1.12"
 HTTP_PORT = 8099
 OPTIONS_FILE = Path("/data/options.json")
 CACHE_DIR = Path("/data/cache")
 HA_CONFIG_DIR = Path("/ha_config")
 DASHBOARD_CARDS_DIR = Path("/app/cards")
-ASTRO_START_CARD_VERSION = 21
+ASTRO_START_CARD_VERSION = 22
 MOON_FORECAST_CARD_VERSION = 23
 DASHBOARD_CARD_INSTALLS = (
     ("astro-start-card.js", f"astro-start-card-v{ASTRO_START_CARD_VERSION}.js"),
@@ -137,7 +137,7 @@ def load_options() -> dict[str, Any]:
         "timezone": "Europe/Prague",
         "refresh_minutes": 30,
         "horizon_hours": 72,
-        "met_user_agent": "AstroWeatherBackend/12.1.11 https://github.com/Z0472/home-assistant-astro-weather",
+        "met_user_agent": "AstroWeatherBackend/12.1.12 https://github.com/Z0472/home-assistant-astro-weather",
         "moon_entity": "sensor.mesic_foceni_predpoved",
         "moon_horizon_days": 45,
         "moon_interference_illumination_pct": 15.0,
@@ -147,7 +147,7 @@ def load_options() -> dict[str, Any]:
         "decision_entity": "sensor.astro_vhodnost_foceni",
         "decision_nights": 3,
         "min_good_block_hours": 4.0,
-        "max_start_delay_minutes": 90,
+        "max_start_delay_minutes": 120,
         "prep_minutes": 45,
         "good_score": 70,
         "marginal_score": 50,
@@ -1883,17 +1883,20 @@ def decision_settings(options: dict[str, Any]) -> dict[str, Any]:
 
 
 def dew_penalty(margin: float | None) -> float:
+    # Heated optics can tolerate dew risk. A small temperature/dew-point
+    # margin is therefore a soft warning about atmospheric haze/fog risk;
+    # actual MET fog remains a separate, much stronger factor.
     if margin is None:
         return 0.0
-    if margin >= 5:
-        return 0.0
     if margin >= 3:
-        return (5 - margin) * 5
+        return 0.0
     if margin >= 2:
-        return 10 + (3 - margin) * 10
+        return (3 - margin) * 10
     if margin >= 1:
-        return 20 + (2 - margin) * 20
-    return 50.0
+        return 10 + (2 - margin) * 10
+    if margin >= 0.5:
+        return 20 + (1 - margin) * 20
+    return 40.0
 
 
 def nearest_moon_hour(target: datetime, rows: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -1955,12 +1958,22 @@ def score_hour(
     if wind is not None and wind > options["wind_warn_ms"]:
         wind_p = min(40.0, (wind - options["wind_warn_ms"]) * 10.0)
 
-    cloud_score = 0.0 if effective_cloud is None else 100.0 - effective_cloud
-    score = max(0.0, min(100.0, cloud_score - dew_p - fog_p - wind_p))
+    cloud_p = 0.0 if effective_cloud is None else effective_cloud
     aerosol = aerosol_quality(row.get("aerosols"), options)
     seeing = seeing_quality(row.get("seeing"), options)
-    score = max(0.0, score - aerosol["aerosolPenalty"])
-    score = max(0.0, score - seeing["seeingPenalty"])
+    score_penalties = {
+        "cloud": cloud_p,
+        "dew": dew_p,
+        "fog": fog_p,
+        "wind": wind_p,
+        "aod": aerosol["aerosolPenalty"],
+        "seeing": seeing["seeingPenalty"],
+    }
+    score = (
+        0.0
+        if effective_cloud is None
+        else max(0.0, min(100.0, 100.0 - sum(score_penalties.values())))
+    )
 
     reasons: list[str] = []
     hard_bad = False
@@ -2051,10 +2064,38 @@ def score_hour(
     else:
         status = "bad"
 
+    penalty_labels = {
+        "cloud": "oblačnost",
+        "dew": "rosa/opar",
+        "fog": "mlha",
+        "wind": "vítr",
+        "aod": "AOD",
+        "seeing": "seeing",
+    }
+    if precip is not None and precip > 0:
+        dominant_penalty = {"key": "precip", "label": "srážky", "points": 100.0}
+    elif moon_interferes:
+        dominant_penalty = {"key": "moon", "label": "Měsíc", "points": 100.0}
+    elif effective_cloud is None:
+        dominant_penalty = None
+    else:
+        dominant_key, dominant_points = max(score_penalties.items(), key=lambda item: item[1])
+        dominant_penalty = (
+            {
+                "key": dominant_key,
+                "label": penalty_labels[dominant_key],
+                "points": round(dominant_points, 1),
+            }
+            if dominant_points > 0.05
+            else None
+        )
+
     return {
         "status": status,
         "score": round(score, 1),
         "confidence": round(confidence, 1),
+        "dominantPenalty": dominant_penalty,
+        "scorePenalties": {key: round(value, 1) for key, value in score_penalties.items()},
         "reasons": reasons,
         "metTotal": round_or_none(mt),
         "aladinTotal": round_or_none(at),

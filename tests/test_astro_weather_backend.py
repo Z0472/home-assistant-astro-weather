@@ -71,7 +71,7 @@ class AerosolTests(unittest.TestCase):
     def test_dashboard_install_writes_versioned_cards_and_stable_loader(self):
         with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as config_dir:
             source = Path(source_dir)
-            source.joinpath("astro-start-card.js").write_text("astro v21", encoding="utf-8")
+            source.joinpath("astro-start-card.js").write_text("astro v22", encoding="utf-8")
             source.joinpath("moon-forecast-card.js").write_text("moon v23", encoding="utf-8")
             source.joinpath("astro-weather-cards-loader.js").write_text("loader", encoding="utf-8")
             with patch.object(b, "DASHBOARD_CARDS_DIR", source), \
@@ -84,7 +84,7 @@ class AerosolTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in installed.iterdir()),
                 [
-                    "astro-start-card-v21.js",
+                    "astro-start-card-v22.js",
                     "astro-weather-cards-loader.js",
                     "astro-weather-cards-manifest.json",
                     "moon-forecast-card-v23.js",
@@ -94,13 +94,13 @@ class AerosolTests(unittest.TestCase):
             self.assertEqual(manifest["backend_version"], b.APP_VERSION)
             self.assertEqual(
                 [card["url"] for card in manifest["cards"]],
-                ["/local/astro-start-card-v21.js", "/local/moon-forecast-card-v23.js"],
+                ["/local/astro-start-card-v22.js", "/local/moon-forecast-card-v23.js"],
             )
 
     def test_dashboard_install_converts_existing_resource_files_to_loader(self):
         with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as config_dir:
             source = Path(source_dir)
-            source.joinpath("astro-start-card.js").write_text("astro v21", encoding="utf-8")
+            source.joinpath("astro-start-card.js").write_text("astro v22", encoding="utf-8")
             source.joinpath("moon-forecast-card.js").write_text("moon v23", encoding="utf-8")
             source.joinpath("astro-weather-cards-loader.js").write_text("loader", encoding="utf-8")
             installed = Path(config_dir) / "www"
@@ -268,15 +268,15 @@ class AerosolTests(unittest.TestCase):
             "astro_weather_backend/cards/astro-start-card.js"
         ).read_text(encoding="utf-8")
         downloadable = repository_root.joinpath(
-            "cards/astro-start-card-v21.txt"
+            "cards/astro-start-card-v22.txt"
         ).read_text(encoding="utf-8")
         loader = repository_root.joinpath(
             "astro_weather_backend/cards/astro-weather-cards-loader.js"
         ).read_text(encoding="utf-8")
 
         self.assertEqual(bundled, downloadable)
-        self.assertIn("astro-start-card v21", bundled)
-        self.assertIn('name: "Astro Start Decision Card v21"', bundled)
+        self.assertIn("astro-start-card v22", bundled)
+        self.assertIn('name: "Astro Start Decision Card v22"', bundled)
         self.assertIn("#1565c0", bundled)
         self.assertIn("#a7aaad", bundled)
         self.assertNotIn("80–100 výborné", bundled)
@@ -567,6 +567,44 @@ class AerosolTests(unittest.TestCase):
         scored = b.score_hour(rows[1], {"interferes": True}, self.night, self.options)
         self.assertEqual(scored["status"], "bad")
         self.assertEqual(scored["score"], 0)
+
+
+    def test_dew_penalty_is_soft_and_reports_dominant_factor(self):
+        self.assertEqual(b.dew_penalty(3.0), 0.0)
+        self.assertAlmostEqual(b.dew_penalty(2.0), 10.0)
+        self.assertAlmostEqual(b.dew_penalty(1.0), 20.0)
+        self.assertAlmostEqual(b.dew_penalty(0.9), 22.0)
+        self.assertAlmostEqual(b.dew_penalty(0.5), 30.0)
+        self.assertEqual(b.dew_penalty(0.4), 40.0)
+
+        row = self.forecast(0.1)[0]
+        row["met"]["dew_point"] = 14.1
+        scored = b.score_hour(row, None, self.night, self.options)
+        self.assertAlmostEqual(scored["score"], 78.0)
+        self.assertEqual(scored["dominantPenalty"]["key"], "dew")
+        self.assertAlmostEqual(scored["dominantPenalty"]["points"], 22.0)
+
+    def test_default_launch_window_accepts_block_starting_two_hours_late(self):
+        self.assertEqual(self.options["max_start_delay_minutes"], 120)
+        rows = self.forecast(0.1)
+        for row in rows[:2]:
+            row["met"]["cloud_total"] = 100
+            row["aladin"]["cloud_total"] = 100
+        analysis = self.analyze(rows)
+        self.assertEqual(analysis["decision"], "good")
+        self.assertEqual(analysis["launchBlock"]["hours"], 6)
+
+
+
+    def test_missing_all_cloud_models_keeps_zero_score(self):
+        row = self.forecast(0.1)[0]
+        row["met"] = None
+        row["aladin"] = None
+        scored = b.score_hour(row, None, self.night, self.options)
+        self.assertEqual(scored["score"], 0)
+        self.assertEqual(scored["status"], "bad")
+        self.assertIsNone(scored["dominantPenalty"])
+
 
 
 if __name__ == "__main__":
