@@ -1,3 +1,13 @@
+## 12.2.0 - 2026-09-11
+- Add DWD ICON as a third independent cloud-model family through the Open-Meteo DWD ICON seamless dataset.
+- Add a robust multi-model cloud consensus: median plus 20% of the model spread, with explicit confidence, outlier detection and genuine-conflict handling instead of fixed invented weights or simple majority voting.
+- Preserve the complete 12.1.12 MET + ALADIN cloud formula whenever ICON is unavailable, so the new source is fail-open.
+- Require at least two independent cloud models for a normal good imaging block; a lone model is intentionally low-confidence.
+- Validate CHMU ALADIN applicability from the actual nearest native GRIB grid point so installations outside the ALADIN domain do not consume a distant boundary value.
+- Add per-hour ICON/model-count/spread/agreement/outlier metadata and per-night two-model/three-model coverage plus ICON averages.
+- Add Astro Start Decision Card v23, displaying ICON and multi-model coverage while retaining the known-good v22 card as its internal base module.
+- Add permanent GitHub Actions regression CI for the original 12.1 behavior, new ICON/consensus tests, JavaScript syntax and the Home Assistant container build.
+
 ## 12.1.12 - 2026-09-11
 - Soften the dew-point-margin penalty: heated optics can tolerate dew risk, so low ΔT is now a warning about atmospheric haze/fog rather than an automatic near-stop.
 - Keep MET `fog_area_fraction` as the separate strong fog penalty/veto.
