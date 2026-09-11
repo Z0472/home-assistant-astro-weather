@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Python sources
+        run: |
+          python -m py_compile astro_weather_backend/astro_weather_backend.py
+          python -m py_compile astro_weather_backend/weather_models.py
+          python -m py_compile astro_weather_backend/cloud_consensus.py
+          python -m py_compile astro_weather_backend/model_runtime.py
+          python -m py_compile astro_weather_backend/app.py
+      - name: Stable 12.1 regression suite
+        run: python -m unittest -v tests/test_astro_weather_backend.py
+      - name: ICON and multi-model regression suite
+        run: python -m unittest -v tests/test_model_consensus.py
