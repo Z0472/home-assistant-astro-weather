@@ -17,7 +17,9 @@ jobs:
           fetch-depth: 0
 
       - name: Apply 12.1.12 changes
-        run: python3 .github/matka_patch_12_1_12.py
+        run: |
+          python3 .github/matka_patch_12_1_12.py
+          python3 .github/matka_fix_12_1_12.py
 
       - name: Run checks
         run: |
@@ -29,6 +31,7 @@ jobs:
         run: |
           rm .github/workflows/matka-patch-12-1-12.yml
           rm .github/matka_patch_12_1_12.py
+          rm .github/matka_fix_12_1_12.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
