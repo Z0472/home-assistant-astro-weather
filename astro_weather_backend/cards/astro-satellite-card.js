@@ -1,4 +1,4 @@
-// astro-satellite-card v1 - EUMETSAT MTG/FCI current cloud reality and 0-3 h nowcast.
+// astro-satellite-card v2 - EUMETSAT MTG/FCI reality, exact CLM samples and 0-3 h nowcast.
 class AstroSatelliteCard extends HTMLElement {
   constructor() {
     super();
@@ -13,6 +13,7 @@ class AstroSatelliteCard extends HTMLElement {
       satellite_entity: "sensor.astro_satelit_oblacnost",
       comparison_entity: "sensor.astro_model_satelit_shoda",
       title: "Satelit – aktuální oblačnost",
+      show_clm_map: true,
       show_image: false,
       ...config,
     };
@@ -29,6 +30,7 @@ class AstroSatelliteCard extends HTMLElement {
       sat?.state ?? "missing",
       sat?.last_updated ?? "",
       sat?.attributes?.as_of ?? "",
+      sat?.attributes?.clm_map_time ?? "",
       cmp?.state ?? "missing",
       cmp?.last_updated ?? "",
     ].join("|");
@@ -38,7 +40,12 @@ class AstroSatelliteCard extends HTMLElement {
     }
   }
 
-  getCardSize() { return this._config?.show_image ? 6 : 4; }
+  getCardSize() {
+    let size = 4;
+    if (this._config?.show_clm_map !== false) size += 2;
+    if (this._config?.show_image) size += 2;
+    return size;
+  }
 
   _escape(value) {
     return String(value ?? "")
@@ -70,7 +77,6 @@ class AstroSatelliteCard extends HTMLElement {
     if (cloud <= 10) return "🌙";
     if (cloud <= 25) return "🌙";
     if (cloud <= 45) return "🌥️";
-    if (cloud <= 70) return "☁️";
     return "☁️";
   }
 
@@ -91,6 +97,91 @@ class AstroSatelliteCard extends HTMLElement {
     if (n >= 70) return "var(--info-color,#2196f3)";
     if (n >= 50) return "var(--warning-color,#ff9800)";
     return "var(--error-color,#f44336)";
+  }
+
+  _clmPointPosition(id) {
+    if (id === "C") return { x: 110, y: 110, center: true };
+    const match = /^(inner|outer)_(\d{3})$/.exec(String(id));
+    if (!match) return null;
+    const radius = match[1] === "inner" ? 39 : 78;
+    const bearing = Number(match[2]);
+    const angle = bearing * Math.PI / 180;
+    return {
+      x: 110 + Math.sin(angle) * radius,
+      y: 110 - Math.cos(angle) * radius,
+      center: false,
+    };
+  }
+
+  _clmClass(value) {
+    if (value === 0 || value === "0") return "clm-clear";
+    if (value === 1 || value === "1") return "clm-cloud";
+    return "clm-nodata";
+  }
+
+  _clmLabel(value) {
+    if (value === 0 || value === "0") return "jasno";
+    if (value === 1 || value === "1") return "mrak";
+    return "bez dat";
+  }
+
+  _clmMap(attrs) {
+    if (this._config?.show_clm_map === false) return "";
+    const points = attrs?.clm_points;
+    if (!points || typeof points !== "object" || Array.isArray(points)) {
+      return `
+        <div class="clm-panel">
+          <div class="clm-title"><b>CLM mapa vzorků</b><span>skutečná data použitá výpočtem</span></div>
+          <div class="clm-wait">Mapa se objeví po prvním úspěšném odečtu EUMETSAT Cloud Mask.</div>
+        </div>`;
+    }
+
+    let clear = 0;
+    let cloud = 0;
+    let noData = 0;
+    const circles = [];
+    for (const [id, value] of Object.entries(points)) {
+      const pos = this._clmPointPosition(id);
+      if (!pos) continue;
+      if (value === 0 || value === "0") clear += 1;
+      else if (value === 1 || value === "1") cloud += 1;
+      else noData += 1;
+      const label = `${id}: ${this._clmLabel(value)}`;
+      circles.push(`
+        <circle class="${this._clmClass(value)}${pos.center ? " clm-center" : ""}"
+          cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="${pos.center ? 9 : 7}">
+          <title>${this._escape(label)}</title>
+        </circle>`);
+    }
+
+    const radius = this._num(attrs.clm_map_radius_km ?? attrs.radius_km) ?? 30;
+    return `
+      <div class="clm-panel">
+        <div class="clm-title">
+          <b>CLM mapa vzorků</b>
+          <span>${this._time(attrs.clm_map_time || attrs.as_of)} · R ${radius.toFixed(0)} km</span>
+        </div>
+        <div class="clm-map-wrap">
+          <svg class="clm-map" viewBox="0 0 220 220" role="img" aria-label="EUMETSAT CLM vzorky kolem observatoře">
+            <circle class="clm-ring" cx="110" cy="110" r="78"></circle>
+            <circle class="clm-ring inner" cx="110" cy="110" r="39"></circle>
+            <line class="clm-axis" x1="110" y1="25" x2="110" y2="195"></line>
+            <line class="clm-axis" x1="25" y1="110" x2="195" y2="110"></line>
+            <text class="clm-dir" x="110" y="15" text-anchor="middle">S</text>
+            <text class="clm-dir" x="207" y="114" text-anchor="middle">V</text>
+            <text class="clm-dir" x="110" y="214" text-anchor="middle">J</text>
+            <text class="clm-dir" x="13" y="114" text-anchor="middle">Z</text>
+            ${circles.join("")}
+            <circle class="clm-observatory" cx="110" cy="110" r="3"></circle>
+          </svg>
+          <div class="clm-legend">
+            <div><span class="legend-dot clear"></span>jasno <b>${clear}</b></div>
+            <div><span class="legend-dot cloud"></span>mrak <b>${cloud}</b></div>
+            ${noData ? `<div><span class="legend-dot nodata"></span>bez dat <b>${noData}</b></div>` : ""}
+            <div class="clm-note">17 bodů = přesně vzorky, z nichž backend počítá satelitní oblačnost. Nejde o interpolovaný obrázek.</div>
+          </div>
+        </div>
+      </div>`;
   }
 
   _unavailable(attrs) {
@@ -139,6 +230,29 @@ class AstroSatelliteCard extends HTMLElement {
         .hour .i { font-size:1.35rem;line-height:1.5; }
         .hour .p { font-size:.9rem;font-weight:800; }
         .hour .l { font-size:.65rem;color:var(--secondary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+        .clm-panel { margin-top:11px;padding-top:10px;border-top:1px solid var(--divider-color); }
+        .clm-title { display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px; }
+        .clm-title b { font-size:.82rem; }
+        .clm-title span { color:var(--secondary-text-color);font-size:.68rem;text-align:right; }
+        .clm-map-wrap { display:grid;grid-template-columns:minmax(170px,220px) 1fr;gap:10px;align-items:center; }
+        .clm-map { width:100%;max-width:220px;display:block;margin:auto; }
+        .clm-ring { fill:none;stroke:var(--divider-color);stroke-width:1.5; }
+        .clm-ring.inner { stroke-dasharray:4 4; }
+        .clm-axis { stroke:var(--divider-color);stroke-width:.8;stroke-dasharray:2 5; }
+        .clm-dir { fill:var(--secondary-text-color);font-size:10px;font-weight:700; }
+        .clm-clear { fill:var(--success-color,#43a047);stroke:var(--card-background-color,#fff);stroke-width:2; }
+        .clm-cloud { fill:#cfd8dc;stroke:#607d8b;stroke-width:2; }
+        .clm-nodata { fill:var(--disabled-text-color,#777);stroke:var(--card-background-color,#fff);stroke-width:2; }
+        .clm-center { stroke:var(--primary-color,#03a9f4);stroke-width:3; }
+        .clm-observatory { fill:var(--primary-color,#03a9f4);pointer-events:none; }
+        .clm-legend { font-size:.72rem;line-height:1.65; }
+        .clm-legend b { margin-left:3px; }
+        .legend-dot { width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:-1px; }
+        .legend-dot.clear { background:var(--success-color,#43a047); }
+        .legend-dot.cloud { background:#cfd8dc;border:1px solid #607d8b;box-sizing:border-box; }
+        .legend-dot.nodata { background:var(--disabled-text-color,#777); }
+        .clm-note { color:var(--secondary-text-color);line-height:1.35;margin-top:5px; }
+        .clm-wait { color:var(--secondary-text-color);font-size:.75rem;line-height:1.4;padding:8px 0; }
         .compare { margin-top:10px;padding-top:9px;border-top:1px solid var(--divider-color);font-size:.78rem;line-height:1.4; }
         .compare b { font-weight:800; }
         .meta { margin-top:8px;color:var(--secondary-text-color);font-size:.70rem;line-height:1.35; }
@@ -146,6 +260,11 @@ class AstroSatelliteCard extends HTMLElement {
         .unavailable .status { color:var(--primary-text-color);font-weight:800;margin-bottom:4px; }
         a { color:var(--primary-color);text-decoration:none; }
         .image { margin-top:10px;width:100%;border-radius:8px;display:block; }
+        @media (max-width:430px) {
+          .clm-map-wrap { grid-template-columns:1fr; }
+          .clm-legend { display:grid;grid-template-columns:repeat(3,auto);gap:0 8px;justify-content:center; }
+          .clm-note { grid-column:1/-1;text-align:center; }
+        }
       </style>`;
 
     if (!satObj || satObj.state === "unavailable" || !sat.available) {
@@ -212,6 +331,8 @@ class AstroSatelliteCard extends HTMLElement {
             }).join("")}
           </div>
 
+          ${this._clmMap(sat)}
+
           <div class="compare"><span>Modely vs realita:</span> ${compareHtml}</div>
           <div class="meta">
             FCI Cloud Mask · 2 km · 10 min · okolí ${Number(sat.radius_km ?? 30).toFixed(0)} km
@@ -232,8 +353,8 @@ window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card.type === "astro-satellite-card")) {
   window.customCards.push({
     type: "astro-satellite-card",
-    name: "Astro Satellite Nowcast Card v1",
-    description: "Aktuální EUMETSAT MTG/FCI oblačnost, krátký satelitní nowcast a shoda s MET + ALADIN + ICON.",
+    name: "Astro Satellite Nowcast Card v2",
+    description: "Aktuální EUMETSAT MTG/FCI oblačnost, přesná mapa 17 CLM vzorků, krátký nowcast a shoda s MET + ALADIN + ICON.",
     preview: true,
   });
 }
