@@ -14,6 +14,7 @@ import confidence_patch
 import night_forecast_patch
 import spatial_cloud_patch
 import spatial_timeline_patch
+import twilight_patch
 import state_cache_patch
 
 
@@ -25,6 +26,7 @@ class ReleaseWiringTests(unittest.TestCase):
         night_forecast_patch.install(core)
         spatial_cloud_patch.install(core)
         spatial_timeline_patch.install(core)
+        twilight_patch.install(core)
         state_cache_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
@@ -43,8 +45,10 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY night_forecast_patch.py", docker)
         self.assertIn("COPY spatial_cloud_patch.py", docker)
         self.assertIn("COPY spatial_timeline_patch.py", docker)
+        self.assertIn("COPY twilight_patch.py", docker)
         self.assertIn("COPY state_cache_patch.py", docker)
         self.assertIn("spatial_timeline_patch.install(core)", app)
+        self.assertIn("twilight_patch.install(core)", app)
         self.assertIn("state_cache_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
 
