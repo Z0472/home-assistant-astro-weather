@@ -27,6 +27,7 @@ jobs:
           python -m py_compile astro_weather_backend/spatial_timeline_patch.py
           python -m py_compile astro_weather_backend/twilight_patch.py
           python -m py_compile astro_weather_backend/state_cache_patch.py
+          python -m py_compile astro_weather_backend/entity_watchdog_patch.py
           python -m py_compile astro_weather_backend/edge_consistency_patch.py
           python -m py_compile astro_weather_backend/satellite_nowcast_patch.py
           python -m py_compile astro_weather_backend/app.py
@@ -58,6 +59,8 @@ jobs:
         run: python -m unittest -v tests/test_twilight_patch.py
       - name: State cache regression suite
         run: python -m unittest -v tests/test_state_cache_patch.py
+      - name: Entity watchdog regression suite
+        run: python -m unittest -v tests/test_entity_watchdog_patch.py
       - name: Edge consistency regression suite
         run: python -m unittest -v tests/test_edge_consistency_patch.py
       - name: Satellite nowcast regression suite
