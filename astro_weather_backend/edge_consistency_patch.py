@@ -344,7 +344,6 @@ def _rewrite_hour_labels(core: Any, options: dict[str, Any], result: dict[str, A
             label += " · směr hrany nejistý"
         row["spatialTrendLabel"] = label
 
-    # Keep the astronomical-only rows consistent for entity/API consumers.
     display = result.get("displayHours")
     hours = result.get("hours")
     if isinstance(display, list) and isinstance(hours, list):
@@ -363,14 +362,23 @@ def install(core: Any) -> None:
         return
 
     old_analyze_night = core.analyze_night
+    old_load_options = core.load_options
 
-    # spatial_timeline_patch resolves these globals at runtime, so replacing them here
-    # tightens both the current trend and the hourly strip without duplicating the model fetch.
     timeline._edge_motion = _edge_motion
     timeline._trend_between = _trend_between
     timeline._enrich_hour_trends = _enrich_hour_trends
     timeline._mirror_to_astronomical_hours = _mirror_to_astronomical_hours
     timeline._current_spatial = _current_spatial
+
+    def load_options() -> dict[str, Any]:
+        options = old_load_options()
+        agent = str(options.get("met_user_agent", "")).strip()
+        if not agent or agent.startswith("AstroWeatherBackend/"):
+            options["met_user_agent"] = (
+                f"AstroWeatherBackend/{RELEASE_VERSION} "
+                "https://github.com/Z0472/home-assistant-astro-weather"
+            )
+        return options
 
     def analyze_night(
         night: dict[str, Any],
@@ -383,6 +391,7 @@ def install(core: Any) -> None:
             _rewrite_hour_labels(core, options, result)
         return result
 
+    core.load_options = load_options
     core.analyze_night = analyze_night
     core.APP_VERSION = RELEASE_VERSION
     core.Handler.server_version = f"AstroWeatherBackend/{RELEASE_VERSION}"
