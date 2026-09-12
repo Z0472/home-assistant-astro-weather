@@ -50,6 +50,33 @@ def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_K
     )
 
 
+def _comparison_using_center(core: Any, options: dict[str, Any], satellite: dict[str, Any], original: Any) -> dict[str, Any]:
+    """Compare point-model cloud with the CLM sample at the same location."""
+    center = sat._safe(satellite.get("center_cloud_pct"))
+    area = sat._safe(satellite.get("cloud_pct"))
+    radius = int(satellite.get("radius_km") or options.get("satellite_radius_km") or 30)
+    if center is None:
+        return {
+            "state": "unavailable",
+            "available": False,
+            "backend_version": RELEASE_VERSION,
+            "satellite_area_cloud_pct": area,
+            "satellite_as_of": satellite.get("as_of"),
+            "satellite_scope": "observatory_center",
+            "satellite_radius_km": radius,
+            "reason": "CLM vzorek přímo nad observatoří není k dispozici.",
+        }
+
+    local_satellite = dict(satellite)
+    local_satellite["cloud_pct"] = center
+    result = dict(original(core, options, local_satellite))
+    result["satellite_local_cloud_pct"] = round(center, 1)
+    result["satellite_area_cloud_pct"] = None if area is None else round(area, 1)
+    result["satellite_scope"] = "observatory_center"
+    result["satellite_radius_km"] = radius
+    return result
+
+
 def install(core: Any) -> None:
     if getattr(core, "_SATELLITE_UI_PATCH_INSTALLED", False):
         return
@@ -68,40 +95,10 @@ def install(core: Any) -> None:
         }
         return document
 
-    def local_comparison(core_arg: Any, options: dict[str, Any], satellite: dict[str, Any]) -> dict[str, Any]:
-        """Compare point-model cloud with the CLM sample at the same location.
-
-        The previous implementation compared a model value at the observatory
-        against the fraction of cloudy CLM samples across the whole 30 km
-        neighbourhood. Those are different spatial quantities. The regional
-        fraction is still retained for trend/nowcast, but not for model skill.
-        """
-        center = sat._safe(satellite.get("center_cloud_pct"))
-        area = sat._safe(satellite.get("cloud_pct"))
-        radius = int(satellite.get("radius_km") or options.get("satellite_radius_km") or 30)
-        if center is None:
-            return {
-                "state": "unavailable",
-                "available": False,
-                "backend_version": RELEASE_VERSION,
-                "satellite_area_cloud_pct": area,
-                "satellite_as_of": satellite.get("as_of"),
-                "satellite_scope": "observatory_center",
-                "satellite_radius_km": radius,
-                "reason": "CLM vzorek přímo nad observatoří není k dispozici.",
-            }
-
-        local_satellite = dict(satellite)
-        local_satellite["cloud_pct"] = center
-        result = dict(old_comparison(core_arg, options, local_satellite))
-        result["satellite_local_cloud_pct"] = round(center, 1)
-        result["satellite_area_cloud_pct"] = None if area is None else round(area, 1)
-        result["satellite_scope"] = "observatory_center"
-        result["satellite_radius_km"] = radius
-        return result
-
     sat._satellite_document = satellite_document
-    sat._comparison = local_comparison
+    sat._comparison = lambda core_arg, options, satellite: _comparison_using_center(
+        core_arg, options, satellite, old_comparison
+    )
 
     # v33 imports v32 -> v31 -> v30. v8 imports v7 -> v6 -> v5 -> v4 -> v3.
     # Install the full dependency chain so a clean Home Assistant install is
