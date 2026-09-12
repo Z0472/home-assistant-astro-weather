@@ -19,6 +19,7 @@ import state_cache_patch
 import entity_watchdog_patch
 import edge_consistency_patch
 import satellite_nowcast_patch
+import storage_protection_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -34,6 +35,7 @@ class ReleaseWiringTests(unittest.TestCase):
         entity_watchdog_patch.install(core)
         edge_consistency_patch.install(core)
         satellite_nowcast_patch.install(core)
+        storage_protection_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
@@ -48,10 +50,13 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("eumetsat_consumer_secret: password", config)
         self.assertIn("COPY entity_watchdog_patch.py", docker)
         self.assertIn("COPY satellite_nowcast_patch.py", docker)
+        self.assertIn("COPY storage_protection_patch.py", docker)
         self.assertIn("entity_watchdog_patch.install(core)", app)
         self.assertIn("satellite_nowcast_patch.install(core)", app)
+        self.assertIn("storage_protection_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
         self.assertEqual(core.APP_VERSION, "12.4.0")
+        self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
 
     def test_v29_and_satellite_card_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
