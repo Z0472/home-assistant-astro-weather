@@ -72,9 +72,9 @@ class SpatialCloudPatchTests(unittest.TestCase):
         spatial.ICON_SPATIAL_ROWS = {stamp: {"points": {}}}
         spatial.ALADIN_SPATIAL_ROWS = {}
         for point in points:
-            total = 10.0 if point["direction"] not in {"Z", "SZ", "JZ"} else 90.0
+            total = 20.0 if point["direction"] not in {"Z", "SZ", "JZ"} else 95.0
             if point["id"] == "C":
-                total = 10.0
+                total = 20.0
             spatial.ICON_SPATIAL_ROWS[stamp]["points"][point["id"]] = {
                 "total": total, "low": total, "mid": 0.0, "high": 0.0,
             }
