@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.3.3."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.3.4."""
 import json
 import sys
 import tempfile
@@ -16,6 +16,7 @@ import spatial_cloud_patch
 import spatial_timeline_patch
 import twilight_patch
 import state_cache_patch
+import edge_consistency_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -28,12 +29,13 @@ class ReleaseWiringTests(unittest.TestCase):
         spatial_timeline_patch.install(core)
         twilight_patch.install(core)
         state_cache_patch.install(core)
+        edge_consistency_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.3.3"', config)
+        self.assertIn('version: "12.3.4"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("spatial_radius_km: 30", config)
@@ -47,10 +49,13 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY spatial_timeline_patch.py", docker)
         self.assertIn("COPY twilight_patch.py", docker)
         self.assertIn("COPY state_cache_patch.py", docker)
+        self.assertIn("COPY edge_consistency_patch.py", docker)
         self.assertIn("spatial_timeline_patch.install(core)", app)
         self.assertIn("twilight_patch.install(core)", app)
         self.assertIn("state_cache_patch.install(core)", app)
+        self.assertIn("edge_consistency_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
+        self.assertEqual(core.APP_VERSION, "12.3.4")
 
     def test_v28_decision_card_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
@@ -88,7 +93,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("Průměrná shoda modelů", moon)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.3.3")
+            self.assertEqual(manifest["backend_version"], "12.3.4")
             self.assertEqual(manifest["cards"][0]["version"], 28)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v28.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
