@@ -17,14 +17,14 @@ import storage_protection_patch as storage
 
 RELEASE_VERSION = "12.4.3"
 ASTRO_CARD_VERSION = 30
-SATELLITE_CARD_VERSION = 3
+SATELLITE_CARD_VERSION = 2
 VISUAL_RADIUS_KM = 150.0
 
 
 def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_KM) -> str:
     """Build a latest-image EUMETView WMS request around the observatory.
 
-    WMS 1.3.0 + EPSG:4326 uses latitude/longitude axis order in BBOX.  The
+    WMS 1.3.0 + EPSG:4326 uses latitude/longitude axis order in BBOX. The
     longitude extent is adjusted for latitude so the requested physical area is
     approximately a square with the chosen radius in kilometres.
     """
@@ -70,7 +70,9 @@ def install(core: Any) -> None:
 
     sat._satellite_document = satellite_document
 
-    # Bump resources so HA browsers fetch the new layout instead of cached v29/v2.
+    # Bump only the main card resource so HA browsers fetch the new v30 layout.
+    # The satellite card itself can remain v2 because it already renders the
+    # visual_url attribute dynamically on every satellite entity update.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
