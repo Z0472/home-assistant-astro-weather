@@ -1,11 +1,11 @@
-"""Persistent last-good Home Assistant state guard for Astro Weather Backend 12.3.2."""
+"""Persistent last-good Home Assistant state guard for Astro Weather Backend 12.3.3."""
 from __future__ import annotations
 
 import json
 from datetime import timedelta
 from typing import Any
 
-RELEASE_VERSION = "12.3.2"
+RELEASE_VERSION = "12.3.3"
 CACHE_FILENAME = "last_good_homeassistant_state.json"
 MAX_CACHE_AGE = timedelta(hours=12)
 
@@ -231,8 +231,6 @@ def install(core: Any) -> None:
         decision_state: dict[str, Any],
         moon_doc: dict[str, Any],
     ) -> None:
-        # During a periodic refresh never let a transient failed calculation
-        # replace an already valid Home Assistant sensor with unavailable/BEZ DAT.
         fallback = _REFRESH_FALLBACK
         if fallback is not None and not _decision_is_valid(decision_state):
             reason = str(decision_state.get("reason") or "refresh vratil neplatny stav")
