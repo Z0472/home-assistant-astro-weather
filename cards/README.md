@@ -2,7 +2,7 @@
 
 The current manual-inspection/fallback sources are:
 
-- `astro-start-card-v26.txt`
+- `astro-start-card-v27.txt`
 - `moon-forecast-card-v25.txt`
 
 The normal install path is the Home Assistant app. It copies all required JavaScript modules to `/config/www` and maintains one stable Lovelace resource.
@@ -10,13 +10,13 @@ The normal install path is the Home Assistant app. It copies all required JavaSc
 ## Current Entry Modules
 
 ```text
-/config/www/astro-start-card-v26.js
+/config/www/astro-start-card-v27.js
 /config/www/moon-forecast-card-v25.js
 /config/www/astro-weather-cards-loader.js
 /config/www/astro-weather-cards-manifest.json
 ```
 
-Older module layers required by v26/v25 are installed automatically. They are implementation dependencies, not separate Lovelace resources.
+Older module layers required by v27/v25 are installed automatically. They are implementation dependencies, not separate Lovelace resources.
 
 ## Lovelace Resource
 
@@ -30,18 +30,22 @@ The loader reads `/local/astro-weather-cards-manifest.json` without browser cach
 
 After an upgrade use **Ctrl+F5** if Home Assistant still displays an already loaded older custom element.
 
-## v26 Decision Card
+## v27 Decision Card
 
-The main card stays intentionally compact. Spatial cloud analysis can use 17 neighbourhood points and several diagnostics internally, but the visible card normally shows only one short operational message such as:
+The card deliberately separates two questions:
+
+1. **Aktuální trend** — modelled spatial situation relative to the current time. Relative ETA such as `za 45 min` is used only here.
+2. **Předpověď noci** — development across the sunset-to-sunrise strip. Changes are shown with absolute clock times such as `vyjasnění kolem 23:00`.
+
+Each hourly tile also receives one compact trend arrow:
 
 ```text
-✓ Okolí stabilně jasné
-☁ Oblačnost přichází ~1 h 15 min od Z
-🌙 Vyjasnění ~45 min
-⚠ Hrana oblačnosti v okolí · ~14 km Z
+↗ zatahování
+↘ vyjasňování
+→ setrvalý stav
 ```
 
-Detailed centre/min/max cloud, spatial stability, contributing sources, dominant cloud layer and pressure-level wind remain in the tooltip/entity attributes rather than crowding the card.
+The main card stays intentionally compact. Detailed centre/min/max cloud, spatial stability, contributing sources, cloud-edge distance/direction and pressure-level wind remain in tooltips/entity attributes rather than crowding the card.
 
 Other current behavior:
 
@@ -50,6 +54,7 @@ Other current behavior:
 - Hard vetoes remain authoritative.
 - The hourly strip runs from sunset to sunrise, while the operational decision uses only astronomical darkness.
 - Nighttime hourly icons do not use a Sun symbol.
+- The backend restores its last valid state immediately after restart while a fresh forecast is recalculated.
 
 ## Card YAML
 
@@ -102,7 +107,7 @@ Open these URLs in the same Home Assistant browser session:
 ```text
 https://YOUR-HA/local/astro-weather-cards-loader.js
 https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v26.js
+https://YOUR-HA/local/astro-start-card-v27.js
 https://YOUR-HA/local/moon-forecast-card-v25.js
 ```
 

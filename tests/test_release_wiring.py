@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.3.0."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.3.1."""
 import json
 import sys
 import tempfile
@@ -13,6 +13,8 @@ import model_runtime
 import confidence_patch
 import night_forecast_patch
 import spatial_cloud_patch
+import spatial_timeline_patch
+import state_cache_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -22,11 +24,14 @@ class ReleaseWiringTests(unittest.TestCase):
         confidence_patch.install(core)
         night_forecast_patch.install(core)
         spatial_cloud_patch.install(core)
+        spatial_timeline_patch.install(core)
+        state_cache_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
-        self.assertIn('version: "12.3.0"', config)
+        app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
+        self.assertIn('version: "12.3.1"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("spatial_radius_km: 30", config)
@@ -37,14 +42,18 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY confidence_patch.py", docker)
         self.assertIn("COPY night_forecast_patch.py", docker)
         self.assertIn("COPY spatial_cloud_patch.py", docker)
+        self.assertIn("COPY spatial_timeline_patch.py", docker)
+        self.assertIn("COPY state_cache_patch.py", docker)
+        self.assertIn("spatial_timeline_patch.install(core)", app)
+        self.assertIn("state_cache_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
 
-    def test_v26_decision_card_install_is_self_contained(self):
+    def test_v27_decision_card_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
         with tempfile.TemporaryDirectory() as config_dir:
             target = Path(config_dir) / "www"
             target.mkdir()
-            target.joinpath("astro-start-card-v25.js").write_text("old v25", encoding="utf-8")
+            target.joinpath("astro-start-card-v26.js").write_text("old v26", encoding="utf-8")
             target.joinpath("moon-forecast-card-v25.js").write_text("old moon v25", encoding="utf-8")
             with patch.object(core, "OPTIONS_FILE", Path("/nonexistent/astro_test_options.json")), \
                     patch.object(core, "DASHBOARD_CARDS_DIR", source), \
@@ -59,23 +68,25 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertTrue(target.joinpath("astro-start-card-v24.js").exists())
             self.assertTrue(target.joinpath("astro-start-card-v25.js").exists())
             self.assertTrue(target.joinpath("astro-start-card-v26.js").exists())
+            self.assertTrue(target.joinpath("astro-start-card-v27.js").exists())
             self.assertTrue(target.joinpath("moon-forecast-card-v23.js").exists())
             self.assertTrue(target.joinpath("moon-forecast-card-v24.js").exists())
             self.assertTrue(target.joinpath("moon-forecast-card-v25.js").exists())
             self.assertTrue(target.joinpath("astro-weather-cards-loader.js").exists())
 
-            astro = target.joinpath("astro-start-card-v26.js").read_text(encoding="utf-8")
+            astro = target.joinpath("astro-start-card-v27.js").read_text(encoding="utf-8")
             moon = target.joinpath("moon-forecast-card-v25.js").read_text(encoding="utf-8")
-            self.assertIn('import "/local/astro-start-card-v25.js";', astro)
-            self.assertIn("Vývoj oblačnosti", astro)
-            self.assertIn("spatialCloud", astro)
+            self.assertIn('import "/local/astro-start-card-v26.js";', astro)
+            self.assertIn("Aktuální trend", astro)
+            self.assertIn("spatialArrow", astro)
+            self.assertIn("Předpověď noci", astro)
             self.assertIn('import "/local/moon-forecast-card-v24.js";', moon)
             self.assertIn("Průměrná shoda modelů", moon)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.3.0")
-            self.assertEqual(manifest["cards"][0]["version"], 26)
-            self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v26.js")
+            self.assertEqual(manifest["backend_version"], "12.3.1")
+            self.assertEqual(manifest["cards"][0]["version"], 27)
+            self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v27.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
             self.assertEqual(manifest["cards"][1]["url"], "/local/moon-forecast-card-v25.js")
 
