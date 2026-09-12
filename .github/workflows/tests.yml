@@ -25,6 +25,7 @@ jobs:
           python -m py_compile astro_weather_backend/night_forecast_patch.py
           python -m py_compile astro_weather_backend/spatial_cloud_patch.py
           python -m py_compile astro_weather_backend/spatial_timeline_patch.py
+          python -m py_compile astro_weather_backend/twilight_patch.py
           python -m py_compile astro_weather_backend/state_cache_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
@@ -48,9 +49,11 @@ jobs:
         run: python -m unittest -v tests/test_spatial_cloud_patch.py
       - name: Spatial timeline regression suite
         run: python -m unittest -v tests/test_spatial_timeline_patch.py
+      - name: Twilight display regression suite
+        run: python -m unittest -v tests/test_twilight_patch.py
       - name: State cache regression suite
         run: python -m unittest -v tests/test_state_cache_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.3.1 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.3.2 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
