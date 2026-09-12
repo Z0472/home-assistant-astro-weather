@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.4.1."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.4.2."""
 import json
 import sys
 import tempfile
@@ -22,6 +22,7 @@ import satellite_nowcast_patch
 import storage_protection_patch
 import satellite_card_map_patch
 import satellite_lowload_patch
+import satellite_index_sampler_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -40,12 +41,13 @@ class ReleaseWiringTests(unittest.TestCase):
         storage_protection_patch.install(core)
         satellite_card_map_patch.install(core)
         satellite_lowload_patch.install(core)
+        satellite_index_sampler_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.4.1"', config)
+        self.assertIn('version: "12.4.2"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("use_satellite: true", config)
@@ -57,16 +59,19 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY storage_protection_patch.py", docker)
         self.assertIn("COPY satellite_card_map_patch.py", docker)
         self.assertIn("COPY satellite_lowload_patch.py", docker)
+        self.assertIn("COPY satellite_index_sampler_patch.py", docker)
         self.assertIn("entity_watchdog_patch.install(core)", app)
         self.assertIn("satellite_nowcast_patch.install(core)", app)
         self.assertIn("storage_protection_patch.install(core)", app)
         self.assertIn("satellite_card_map_patch.install(core)", app)
         self.assertIn("satellite_lowload_patch.install(core)", app)
+        self.assertIn("satellite_index_sampler_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
-        self.assertEqual(core.APP_VERSION, "12.4.1")
+        self.assertEqual(core.APP_VERSION, "12.4.2")
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_CARD_MAP_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_LOWLOAD_PATCH_INSTALLED", False))
+        self.assertTrue(getattr(core, "_SATELLITE_INDEX_SAMPLER_PATCH_INSTALLED", False))
 
     def test_v29_and_satellite_card_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
@@ -97,7 +102,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("show_clm_map: true", satellite)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.4.1")
+            self.assertEqual(manifest["backend_version"], "12.4.2")
             self.assertEqual(manifest["cards"][0]["version"], 29)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v29.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
