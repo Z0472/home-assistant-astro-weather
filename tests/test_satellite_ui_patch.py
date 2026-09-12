@@ -53,12 +53,14 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("_astro_refresh", source)
         self.assertIn("satObj?.last_updated", source)
         self.assertIn("aspect-ratio:1/1", source)
-        self.assertIn("15 / 30 km", source)
+        self.assertIn("CLM vzorky · kruhy", source)
+        self.assertIn("mapRadius / 2", source)
         self.assertIn("sample-clear", source)
         self.assertIn("#2196f3", source)
         self.assertIn("sample-cloud", source)
         self.assertIn("#9e9e9e", source)
         self.assertIn("observatoř", source)
+        self.assertIn("visual-overlay", source)
         self.assertNotIn("CLM mapa vzorků", source)
 
     def test_release_constants(self):
