@@ -12,6 +12,7 @@ import entity_watchdog_patch
 import edge_consistency_patch
 import satellite_nowcast_patch
 import storage_protection_patch
+import satellite_card_map_patch
 
 model_runtime.install(core)
 confidence_patch.install(core)
@@ -24,6 +25,7 @@ entity_watchdog_patch.install(core)
 edge_consistency_patch.install(core)
 satellite_nowcast_patch.install(core)
 storage_protection_patch.install(core)
+satellite_card_map_patch.install(core)
 
 if __name__ == "__main__":
     core.main()
