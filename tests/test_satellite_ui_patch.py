@@ -128,7 +128,6 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("oblačných CLM vzorků", source)
         self.assertIn("Vývoj oblačnosti v okolí", source)
         self.assertIn("satellite_local_cloud_pct", source)
-        self.assertIn("Regionální", source) if False else None
         self.assertIn("_localVsAreaV8", source)
 
     def test_release_constants(self):
