@@ -24,6 +24,7 @@ COPY weather_models.py /app/weather_models.py
 COPY cloud_consensus.py /app/cloud_consensus.py
 COPY model_runtime.py /app/model_runtime.py
 COPY confidence_patch.py /app/confidence_patch.py
+COPY night_forecast_patch.py /app/night_forecast_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
 
