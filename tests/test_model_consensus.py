@@ -214,14 +214,17 @@ class ModelConsensusTests(unittest.TestCase):
         self.assertEqual(analysis["iconAvg"], 15)
         self.assertEqual(analysis["modelCountAvg"], 3)
 
-    def test_generic_conflict_reason_lists_all_available_models(self):
+    def test_generic_conflict_reason_uses_spread_and_time_without_duplicate_model_percentages(self):
         rows = [self.weather_row(met=10, aladin=45, icon=80, hour=i) for i in range(8)]
         analysis = core.analyze_night(self.night, rows, [], self.options)
         self.assertEqual(analysis["decision"], "uncertain")
         self.assertIn("Meteorologické modely", analysis["reason"])
-        self.assertIn("MET 10 %", analysis["reason"])
-        self.assertIn("ALADIN 45 %", analysis["reason"])
-        self.assertIn("ICON 80 %", analysis["reason"])
+        self.assertIn("největší hodinový rozptyl", analysis["reason"])
+        self.assertIn("70 p. b.", analysis["reason"])
+        self.assertIn("kolem", analysis["reason"])
+        self.assertNotIn("MET 10 %", analysis["reason"])
+        self.assertNotIn("ALADIN 45 %", analysis["reason"])
+        self.assertNotIn("ICON 80 %", analysis["reason"])
 
     def test_merge_sources_keeps_icon_only_timestamps(self):
         now = self.start - timedelta(hours=1)
