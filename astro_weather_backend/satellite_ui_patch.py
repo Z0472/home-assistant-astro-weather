@@ -1,10 +1,10 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.4.
+"""Satellite UI refinements for Astro Weather Backend 12.4.5.
 
 Keeps the live satellite/model agreement only in today's top summary card and
 serves a compact 150 km radius EUMETView IR10.5 view centred on the configured
-observatory.  The IR image is square so it can be rendered substantially larger
-on the HA card without changing the geographic radius.  Satellite card v3 draws
-the 15/30 km CLM sampling geometry directly over that image.
+observatory. The IR image remains square; satellite card v4 renders a larger,
+cleaner panel and overlays only the essential 15/30 km CLM geometry without
+labels inside the image.
 """
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.4"
+RELEASE_VERSION = "12.4.5"
 ASTRO_CARD_VERSION = 30
-SATELLITE_CARD_VERSION = 3
+SATELLITE_CARD_VERSION = 4
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
 
@@ -74,7 +74,8 @@ def install(core: Any) -> None:
 
     sat._satellite_document = satellite_document
 
-    # v3 forces browsers to load the combined image+CLM overlay implementation.
+    # v4 is a small wrapper over the proven v3 card. Install both files so a
+    # clean Home Assistant installation has the import dependency available.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -85,7 +86,8 @@ def install(core: Any) -> None:
         installs.append((source, target))
     if not any(target == f"astro-start-card-v{ASTRO_CARD_VERSION}.js" for _, target in installs):
         installs.append((f"astro-start-card-v{ASTRO_CARD_VERSION}.js", f"astro-start-card-v{ASTRO_CARD_VERSION}.js"))
-    installs.append(("astro-satellite-card.js", f"astro-satellite-card-v{SATELLITE_CARD_VERSION}.js"))
+    installs.append(("astro-satellite-card.js", "astro-satellite-card-v3.js"))
+    installs.append((f"astro-satellite-card-v{SATELLITE_CARD_VERSION}.js", f"astro-satellite-card-v{SATELLITE_CARD_VERSION}.js"))
     core.DASHBOARD_CARD_INSTALLS = tuple(installs)
 
     sat.RELEASE_VERSION = RELEASE_VERSION
