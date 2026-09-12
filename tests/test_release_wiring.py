@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.4.3."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.4.4."""
 import json
 import sys
 import tempfile
@@ -49,7 +49,7 @@ class ReleaseWiringTests(unittest.TestCase):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.4.3"', config)
+        self.assertIn('version: "12.4.4"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("use_satellite: true", config)
@@ -71,14 +71,14 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("satellite_index_sampler_patch.install(core)", app)
         self.assertIn("satellite_ui_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
-        self.assertEqual(core.APP_VERSION, "12.4.3")
+        self.assertEqual(core.APP_VERSION, "12.4.4")
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_CARD_MAP_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_LOWLOAD_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_INDEX_SAMPLER_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_UI_PATCH_INSTALLED", False))
 
-    def test_v30_and_satellite_card_install_is_self_contained(self):
+    def test_v30_and_satellite_card_v3_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
         with tempfile.TemporaryDirectory() as config_dir:
             target = Path(config_dir) / "www"
@@ -94,29 +94,31 @@ class ReleaseWiringTests(unittest.TestCase):
 
             self.assertTrue(ok)
             self.assertTrue(target.joinpath("astro-start-card-v30.js").exists())
-            self.assertTrue(target.joinpath("astro-satellite-card-v2.js").exists())
+            self.assertTrue(target.joinpath("astro-satellite-card-v3.js").exists())
             self.assertTrue(target.joinpath("astro-weather-cards-loader.js").exists())
 
             astro = target.joinpath("astro-start-card-v30.js").read_text(encoding="utf-8")
-            satellite = target.joinpath("astro-satellite-card-v2.js").read_text(encoding="utf-8")
+            satellite = target.joinpath("astro-satellite-card-v3.js").read_text(encoding="utf-8")
             self.assertIn('import "/local/astro-start-card-v29.js";', astro)
             self.assertIn("idx !== 0", astro)
             self.assertIn("night-satellite-v30", astro)
             self.assertIn("satellite-agreement-v29", astro)
             self.assertIn('customElements.define("astro-satellite-card"', satellite)
             self.assertIn("+1 až +3 h je nowcast", satellite)
-            self.assertIn("CLM mapa vzorků", satellite)
+            self.assertIn("_astro_refresh", satellite)
             self.assertIn("show_clm_map: true", satellite)
+            self.assertIn("aspect-ratio:1/1", satellite)
+            self.assertIn("observatoř", satellite)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.4.3")
+            self.assertEqual(manifest["backend_version"], "12.4.4")
             self.assertEqual(manifest["cards"][0]["version"], 30)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v30.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
             sat_cards = [row for row in manifest["cards"] if row.get("type") == "astro-satellite-card"]
             self.assertEqual(len(sat_cards), 1)
-            self.assertEqual(sat_cards[0]["version"], 2)
-            self.assertEqual(sat_cards[0]["url"], "/local/astro-satellite-card-v2.js")
+            self.assertEqual(sat_cards[0]["version"], 3)
+            self.assertEqual(sat_cards[0]["url"], "/local/astro-satellite-card-v3.js")
 
 
 if __name__ == "__main__":
