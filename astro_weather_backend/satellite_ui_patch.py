@@ -1,8 +1,10 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.3.
+"""Satellite UI refinements for Astro Weather Backend 12.4.4.
 
 Keeps the live satellite/model agreement only in today's top summary card and
-changes the EUMETView IR10.5 illustration from a Europe-wide image to a compact
-150 km radius view centred on the configured observatory coordinates.
+serves a compact 150 km radius EUMETView IR10.5 view centred on the configured
+observatory.  The IR image is square so it can be rendered substantially larger
+on the HA card without changing the geographic radius.  Satellite card v3 draws
+the 15/30 km CLM sampling geometry directly over that image.
 """
 from __future__ import annotations
 
@@ -15,10 +17,11 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.3"
+RELEASE_VERSION = "12.4.4"
 ASTRO_CARD_VERSION = 30
-SATELLITE_CARD_VERSION = 2
+SATELLITE_CARD_VERSION = 3
 VISUAL_RADIUS_KM = 150.0
+VISUAL_SIZE_PX = 900
 
 
 def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_KM) -> str:
@@ -26,7 +29,7 @@ def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_K
 
     WMS 1.3.0 + EPSG:4326 uses latitude/longitude axis order in BBOX. The
     longitude extent is adjusted for latitude so the requested physical area is
-    approximately a square with the chosen radius in kilometres.
+    approximately square with the chosen radius in kilometres.
     """
     lat = float(options["latitude"])
     lon = float(options["longitude"])
@@ -47,7 +50,7 @@ def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_K
         "https://view.eumetsat.int/geoserver/wms?"
         "service=WMS&version=1.3.0&request=GetMap&"
         "layers=mtg_fd:ir105_hrfi,backgrounds:ne_10m_coastline,backgrounds:ne_boundary_lines_land&"
-        f"bbox={bbox}&width=900&height=600&crs=EPSG:4326&"
+        f"bbox={bbox}&width={VISUAL_SIZE_PX}&height={VISUAL_SIZE_PX}&crs=EPSG:4326&"
         "styles=&format=image/jpeg&bgcolor=0xCCCCCC"
     )
 
@@ -62,6 +65,7 @@ def install(core: Any) -> None:
         document = dict(old_document(core_arg, options))
         document["visual_url"] = _regional_ir_url(options)
         document["visual_radius_km"] = int(VISUAL_RADIUS_KM)
+        document["visual_size_px"] = VISUAL_SIZE_PX
         document["visual_center"] = {
             "latitude": round(float(options["latitude"]), 5),
             "longitude": round(float(options["longitude"]), 5),
@@ -70,9 +74,7 @@ def install(core: Any) -> None:
 
     sat._satellite_document = satellite_document
 
-    # Bump only the main card resource so HA browsers fetch the new v30 layout.
-    # The satellite card itself can remain v2 because it already renders the
-    # visual_url attribute dynamically on every satellite entity update.
+    # v3 forces browsers to load the combined image+CLM overlay implementation.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
