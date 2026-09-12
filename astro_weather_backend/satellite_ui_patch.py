@@ -1,10 +1,10 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.5.
+"""Satellite UI refinements for Astro Weather Backend 12.4.6.
 
-Keeps the live satellite/model agreement only in today's top summary card and
+Keeps the live satellite/model agreement only in today's top summary card,
 serves a compact 150 km radius EUMETView IR10.5 view centred on the configured
-observatory. The IR image remains square; satellite card v4 renders a larger,
-cleaner panel and overlays only the essential 15/30 km CLM geometry without
-labels inside the image.
+observatory, and wires the current v31/v5 dashboard resources. Satellite card
+v5 shows live CLM age separately from the IR refresh time; main card v31 removes
+duplicate astronomical-night rows while retaining the bold timing in detail.
 """
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.5"
-ASTRO_CARD_VERSION = 30
-SATELLITE_CARD_VERSION = 4
+RELEASE_VERSION = "12.4.6"
+ASTRO_CARD_VERSION = 31
+SATELLITE_CARD_VERSION = 5
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
 
@@ -74,8 +74,9 @@ def install(core: Any) -> None:
 
     sat._satellite_document = satellite_document
 
-    # v4 is a small wrapper over the proven v3 card. Install both files so a
-    # clean Home Assistant installation has the import dependency available.
+    # v31 imports v30; v5 imports v4 which imports v3. Install the complete
+    # dependency chain so a clean Home Assistant install works without cache or
+    # files left behind from an older release.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -83,11 +84,17 @@ def install(core: Any) -> None:
     for source, target in core.DASHBOARD_CARD_INSTALLS:
         if target.startswith("astro-satellite-card-v"):
             continue
+        if target.startswith("astro-start-card-v31"):
+            continue
         installs.append((source, target))
-    if not any(target == f"astro-start-card-v{ASTRO_CARD_VERSION}.js" for _, target in installs):
-        installs.append((f"astro-start-card-v{ASTRO_CARD_VERSION}.js", f"astro-start-card-v{ASTRO_CARD_VERSION}.js"))
+
+    if not any(target == "astro-start-card-v30.js" for _, target in installs):
+        installs.append(("astro-start-card-v30.js", "astro-start-card-v30.js"))
+    installs.append(("astro-start-card-v31.js", "astro-start-card-v31.js"))
+
     installs.append(("astro-satellite-card.js", "astro-satellite-card-v3.js"))
-    installs.append((f"astro-satellite-card-v{SATELLITE_CARD_VERSION}.js", f"astro-satellite-card-v{SATELLITE_CARD_VERSION}.js"))
+    installs.append(("astro-satellite-card-v4.js", "astro-satellite-card-v4.js"))
+    installs.append(("astro-satellite-card-v5.js", "astro-satellite-card-v5.js"))
     core.DASHBOARD_CARD_INSTALLS = tuple(installs)
 
     sat.RELEASE_VERSION = RELEASE_VERSION

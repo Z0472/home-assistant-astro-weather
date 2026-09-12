@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.5 satellite UI refinements."""
+"""Regression tests for Astro Weather 12.4.6 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -38,40 +38,42 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertGreater(ew_radius_km, 145.0)
         self.assertLess(ew_radius_km, 155.0)
 
-    def test_main_card_keeps_live_satellite_line_today_only(self):
-        source = (ROOT / "astro_weather_backend/cards/astro-start-card-v30.js").read_text(encoding="utf-8")
-        self.assertIn('import "/local/astro-start-card-v29.js";', source)
-        self.assertIn("idx !== 0", source)
-        self.assertIn("night-satellite-v30", source)
-        self.assertIn("Satelit vs modely", source)
-        self.assertIn("satellite-agreement-v29", source)
+    def test_main_card_v31_removes_duplicate_astronomical_night_rows(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-start-card-v31.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-start-card-v30.js";', source)
+        self.assertIn('class="night-astro"', source)
+        self.assertIn('class="detail-sub">Astronomická noc', source)
+        self.assertIn("_nightSummaryHtml", source)
         self.assertIn("_detailHtml", source)
+        self.assertIn("_compactNightRowsV31", source)
 
-    def test_satellite_card_v4_is_larger_finer_and_has_no_overlay_text(self):
-        base = (ROOT / "astro_weather_backend/cards/astro-satellite-card.js").read_text(encoding="utf-8")
-        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v4.js").read_text(encoding="utf-8")
+        base = (ROOT / "astro_weather_backend/cards/astro-start-card.js").read_text(encoding="utf-8")
+        self.assertIn('<div class="k">Astronomická noc</div>', base)
 
-        self.assertIn("_astro_refresh", base)
-        self.assertIn("satObj?.last_updated", base)
-        self.assertIn('import "/local/astro-satellite-card-v3.js";', source)
-        self.assertIn("_fineOverlayV4", source)
-        self.assertIn("width:calc(100% + 10px)", source)
-        self.assertIn("padding-left:8px", source)
-        self.assertIn("stroke-width:1.35", source)
-        self.assertIn('r="${pos.center ? 6 : 5}"', source)
-        self.assertIn("sample-clear-v4", source)
-        self.assertIn("33,150,243", source)
-        self.assertIn("sample-cloud-v4", source)
-        self.assertIn("158,158,158", source)
-        self.assertIn("observatory-ring-v4", source)
-        self.assertIn("kruhy ${(mapRadius / 2).toFixed(0)} / ${mapRadius.toFixed(0)} km", source)
-        self.assertNotIn("<text", source)
-        self.assertNotIn("overlay-legend", source)
+    def test_satellite_card_v5_separates_live_clm_age_and_ir_refresh(self):
+        v4 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v4.js").read_text(encoding="utf-8")
+        v5 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v5.js").read_text(encoding="utf-8")
+
+        self.assertIn('import "/local/astro-satellite-card-v4.js";', v5)
+        self.assertIn("_liveClmAgeV5", v5)
+        self.assertIn("Date.now()", v5)
+        self.assertIn("CLM ${this._time(asOf)} · před ${age} min", v5)
+        self.assertIn("setInterval", v5)
+        self.assertIn("30000", v5)
+        self.assertIn("age >= 45", v5)
+        self.assertIn("age >= 30", v5)
+        self.assertIn("IR obnoveno ${refreshed}", v5)
+        self.assertIn("_logicalTimeLabelsV5", v5)
+
+        # v5 must preserve the fine v4 overlay rather than replacing it.
+        self.assertIn("_fineOverlayV4", v4)
+        self.assertIn("sample-clear-v4", v4)
+        self.assertIn("sample-cloud-v4", v4)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.5")
-        self.assertEqual(ui.ASTRO_CARD_VERSION, 30)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 4)
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.6")
+        self.assertEqual(ui.ASTRO_CARD_VERSION, 31)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 5)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
 
