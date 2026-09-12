@@ -1,75 +1,109 @@
 # Home Assistant Astro Weather
 
-Home Assistant app/add-on for astrophotography planning. It combines MET Norway Locationforecast, CHMU ALADIN, DWD ICON, internal Moon/night calculation, CAMS/Open-Meteo AOD 550, Open-Meteo dust concentration and 7Timer seeing into one practical decision: **SPUSTIT / NEJISTE / NESPOUSTET** (START / UNCERTAIN / DO NOT START).
-
-## Repository Description
-
-Suggested GitHub **About -> Description** text:
-
-```text
-Home Assistant add-on for astrophotography weather decisions using MET Norway, CHMU ALADIN, DWD ICON, internal Moon, CAMS/Open-Meteo AOD and 7Timer seeing.
-```
-
-Suggested GitHub topics:
-
-```text
-home-assistant, addon, astronomy, astrophotography, weather, aladin, icon, cams, moon, seeing, 7timer
-```
+Home Assistant app/add-on for astrophotography planning. It combines MET Norway Locationforecast, CHMI ALADIN, DWD ICON, spatial cloud analysis, internal Moon/night calculation, CAMS/Open-Meteo AOD 550 and 7Timer seeing into one operational decision: **SPUSTIT / NEJISTÉ / NESPOUŠTĚT**.
 
 ## Current Version
 
-**Astro Weather Backend 12.2.0**
+**Astro Weather Backend 12.3.0**
 
-Version 12.2.0 adds a third independent cloud-model family and a location-independent consensus layer:
+Version 12.3.0 adds a spatial cloud-neighbourhood layer. The normal point forecast remains the core forecast, but the backend also checks the surroundings of the configured observing site so a slightly misplaced model cloud boundary is less likely to produce an overconfident decision.
 
-- MET Norway Locationforecast remains the primary general weather source,
-- CHMU ALADIN remains a high-resolution regional cloud source and is used only when the configured location is close to its native grid,
-- DWD ICON is fetched through the Open-Meteo DWD ICON interface using the explicit `dwd_icon_seamless` model family,
-- the three cloud forecasts are combined by a robust median/spread consensus rather than fixed invented model weights or simple 2-of-3 voting,
-- a lone outlier lowers confidence but does not automatically overrule two closely agreeing models,
-- a genuine wide three-way conflict produces low confidence / an uncertain hour,
-- if ICON is unavailable the old two-model MET + ALADIN cloud formula is preserved,
-- if only one independent cloud model is available it cannot create a normal good block by itself.
+The spatial layer is intentionally conservative: it may downgrade an otherwise confident result to **NEJISTÉ**, but it never overrides a hard veto and never upgrades a bad forecast directly to **SPUSTIT**.
 
-The DWD seamless family is geographically portable: where available it blends the appropriate DWD ICON Global, ICON EU and ICON D2 products. This keeps the add-on useful outside the Czech Republic instead of hard-coding South Bohemia or one country.
+## Main Data Sources
 
-The backend also calculates the Moon and astronomical night internally, publishes weather/Moon/decision entities directly to Home Assistant, installs dashboard cards itself, and maintains one stable Lovelace loader selected through a no-cache manifest.
+- **MET Norway Locationforecast**: point forecast for general weather, cloud layers, fog, precipitation, temperature, dew point and wind.
+- **CHMI ALADIN**: high-resolution regional cloud forecast from native GRIB data; the backend validates that the configured site is close to the model grid.
+- **DWD ICON Seamless via Open-Meteo**: total/low/mid/high cloud cover and the spatial cloud-neighbourhood forecast.
+- **Internal Moon calculation**: astronomical night, phase, illumination, altitude and hourly interference.
+- **CAMS/Open-Meteo Air Quality**: AOD 550 and informational dust concentration.
+- **7Timer ASTRO**: model seeing estimate.
 
-The backend app publishes these Home Assistant entities itself through the Supervisor API:
+SkyAccuracy.cz is not used.
 
-- `sensor.astro_weather_detail`
-- `sensor.astro_vhodnost_foceni`
-- `sensor.mesic_foceni_predpoved`
+## Decision Philosophy
 
-The Moon entity is a compatibility output for existing dashboard cards, not an input dependency.
+The dashboard should stay simple even though the backend is not. The user should not have to compare several meteorological websites manually.
 
-The default MET User-Agent is generic and points to this repository, and the bundled location is only a sample default. Set your real latitude, longitude and altitude in the Home Assistant app configuration after install.
+The central decision uses:
+
+- model consensus from MET / ALADIN / ICON,
+- astronomical darkness and Moon interference,
+- precipitation, fog and wind vetoes,
+- AOD and seeing quality factors,
+- spatial cloud stability around the observing site.
+
+`Shoda modelů` means agreement between independent forecast models; it is **not** a calibrated probability that the forecast will be correct.
+
+Hard vetoes such as precipitation, strong fog/wind, interfering Moon, bad AOD or bad seeing remain authoritative. A cloud-only `NESPOUŠTĚT` is softened to `NEJISTÉ` when model agreement is weak.
+
+## Spatial Cloud Analysis (12.3.0)
+
+Spatial analysis is enabled by default:
+
+```yaml
+spatial_cloud_analysis: true
+spatial_radius_km: 30
+```
+
+`spatial_radius_km` can be set from **10 to 50 km**.
+
+The backend samples **17 locations**:
+
+- observing site,
+- 8 compass directions at half the configured radius,
+- 8 compass directions at the full radius.
+
+DWD ICON supplies the neighbourhood cloud field in one multi-location request. ALADIN reuses its already downloaded cloud GRIB and samples the same neighbourhood locally. MET remains a point forecast in this version.
+
+The backend derives, when enough data are available:
+
+- spatial cloud range and stability,
+- whether the site lies near a cloud boundary,
+- approximate direction and distance of the nearest 50% cloud boundary,
+- whether cloud is approaching or clearing in successive forecast hours,
+- a rough ETA for a meaningful change over the site,
+- dominant ICON cloud layer and pressure-level wind as a consistency check.
+
+The card deliberately shows only a compact operational message, for example:
+
+```text
+✓ Okolí stabilně jasné
+☁ Oblačnost přichází ~1 h 15 min od Z
+🌙 Vyjasnění ~45 min
+⚠ Hrana oblačnosti v okolí · ~14 km Z
+```
+
+Detailed diagnostics remain in entity attributes/tooltips rather than cluttering the main card.
+
+## Sunset-to-Sunrise Hourly Strip
+
+The hourly visual strip runs from apparent **sunset to the following sunrise**, so evening clearing or incoming clouds are visible before astronomical darkness begins. The actual photography decision and good-block calculation still use only **astronomical darkness**.
+
+Nighttime cloud icons use nighttime/Moon variants; the hourly night strip does not show a Sun symbol.
 
 ## Automatic Install From GitHub
 
-The normal install path is the Home Assistant App/Add-on Store repository flow. No files from this repository need to be copied into `/addons`.
-
 1. In Home Assistant open **Settings -> Apps -> Install app**.
 2. Open the three-dot menu and choose **Repositories**.
-3. Add this repository URL:
+3. Add:
 
 ```text
 https://github.com/Z0472/home-assistant-astro-weather
 ```
 
-4. Install **Astro Weather Backend** from the store.
-5. Open the add-on configuration and set at least `latitude`, `longitude`, `altitude` and `timezone`.
-6. Keep `use_icon: true` unless you intentionally want to disable the DWD ICON source.
-7. Start the add-on.
-8. Wait until the log shows `ICON:`, `MESIC INTERNI` and `HA ENTITY: publikovano`. If ICON is temporarily unavailable, the backend continues with the remaining independent models.
+4. Install **Astro Weather Backend**.
+5. Set at least `latitude`, `longitude`, `altitude` and `timezone`.
+6. Leave `use_icon: true` and `spatial_cloud_analysis: true` enabled unless you intentionally want to disable those layers.
+7. Select a spatial radius from 10–50 km; **30 km is the default**.
+8. Start the app and check the log for weather sources, internal Moon and published Home Assistant entities.
 9. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
-10. Continue with **Dashboard Resource Check** below.
 
-Future upgrades are handled by Home Assistant through **Check for updates** or **Auto update**. The add-on updates its cards and the stable loader automatically; users do not change versioned Lovelace resource URLs.
+Future versions are installed through Home Assistant **Check for updates** / **Auto update**.
 
-## What The Add-on Creates
+## Home Assistant Entities
 
-After the first successful start the add-on publishes:
+The app publishes:
 
 ```text
 sensor.astro_weather_detail
@@ -77,84 +111,36 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-When `install_dashboard_cards: true` is enabled, version 12.2.0 installs the decision card v23, its stable v22 base module, the Moon card, the loader and manifest:
+The central verdict and spatial summary are in `sensor.astro_vhodnost_foceni`.
 
-```text
-/config/www/astro-start-card-base-v22.js
-/config/www/astro-start-card-v23.js
-/config/www/moon-forecast-card-v23.js
-/config/www/astro-weather-cards-loader.js
-/config/www/astro-weather-cards-manifest.json
-```
+## Dashboard Cards
 
-The v22 base is an internal implementation module. Lovelace must still contain only the stable loader resource; do not add the base module manually.
-
-In normal Home Assistant storage mode, the add-on creates or updates this one Lovelace resource automatically:
+The app installs the current card modules into `/config/www` and maintains one stable Lovelace resource:
 
 ```text
 /local/astro-weather-cards-loader.js
 ```
 
-On upgrade, older Astro resource entries such as `astro-start-card-v20.js`, `astro-start-card-v22.js` or old Moon-card resource entries are consolidated to this loader. Other Lovelace resources are never changed.
-
-## Dashboard Resource Check
-
-1. Start the add-on once and check the log for card installation, the stable loader and published entities.
-2. In a browser, verify that these URLs return JavaScript/JSON rather than `404: Not Found`:
+Current entry modules are:
 
 ```text
-https://YOUR-HA/local/astro-weather-cards-loader.js
-https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v23.js
-https://YOUR-HA/local/astro-start-card-base-v22.js
-https://YOUR-HA/local/moon-forecast-card-v23.js
+/config/www/astro-start-card-v26.js
+/config/www/moon-forecast-card-v25.js
+/config/www/astro-weather-cards-loader.js
+/config/www/astro-weather-cards-manifest.json
 ```
 
-3. Open **Settings -> Dashboards -> Resources**. In some Home Assistant versions the same screen is available at:
+Dependency modules for older card layers are installed automatically. Do **not** add individual versioned cards as Lovelace resources.
 
-```text
-/config/lovelace/resources
-```
-
-4. Verify that there is exactly this one Astro resource:
+In **Settings -> Dashboards -> Resources** there should be exactly one Astro Weather resource:
 
 | URL | Resource type |
 | --- | --- |
 | `/local/astro-weather-cards-loader.js` | JavaScript module |
 
-The add-on normally creates it and removes its own older versioned entries automatically. If automatic registration is unavailable because `lovelace.resource_mode` is `yaml`, add the loader once to the `resources` section of the Home Assistant configuration.
-
-If the log ends with `KARTY RESOURCE CHYBA`, add only `/local/astro-weather-cards-loader.js` manually as a JavaScript module and remove old Astro Weather resource entries.
-
-5. Restart Home Assistant after the first installation, or refresh the Home Assistant frontend after an upgrade.
-6. Wait up to one minute. The add-on checks the three published states and restores them automatically after a Home Assistant restart.
-7. Verify the entities in **Developer Tools -> States**, then add the card YAML below.
+After an upgrade use **Ctrl+F5** if the browser still displays an already cached custom element.
 
 ## Dashboard Card YAML
-
-Main decision card:
-
-```yaml
-type: custom:astro-start-card
-decision_entity: sensor.astro_vhodnost_foceni
-weather_entity: sensor.astro_weather_detail
-moon_entity: sensor.mesic_foceni_predpoved
-days: 3
-grid_options:
-  columns: full
-```
-
-Moon and longer forecast overview:
-
-```yaml
-type: custom:moon-forecast-card
-entity: sensor.mesic_foceni_predpoved
-weather_entity: sensor.astro_weather_detail
-decision_entity: sensor.astro_vhodnost_foceni
-days: 45
-grid_options:
-  columns: full
-```
 
 Both cards in one vertical stack:
 
@@ -174,56 +160,36 @@ cards:
     days: 45
 ```
 
-To add a card manually: open the dashboard, choose **Edit dashboard -> Add card -> Manual**, paste one of the YAML blocks above and save.
-
 ## Cloud Model Consensus
 
-The cloud consensus deliberately does not assign arbitrary permanent weights such as "ALADIN 40 %, ICON 35 %, ECMWF 25 %".
+With three independent model values the cloud consensus uses a robust median/spread approach rather than fixed arbitrary model weights. A tight pair can resist one distant outlier; a broad conflict reduces model agreement and can make the result uncertain.
 
-With three independent model values it uses the median as the robust center and adds 20 % of the full inter-model spread as a conservative cloud correction. Model spread remains visible as a separate confidence signal. A tight pair plus one distant model is treated as an outlier case; a broad disagreement without a tight pair is treated as a genuine conflict.
-
-With only MET + ALADIN available, the 12.1.12 two-model cloud formula and high-cloud safeguard are retained exactly. With one model, confidence is intentionally capped so that one source alone cannot claim a normal high-confidence imaging window.
-
-This is a forecast consensus, not a claim that model grid resolution equals forecast skill. Future versions can add locally verified skill weights after enough observations exist; version 12.2.0 does not invent those weights.
-
-## Data Sources
-
-- MET Norway Locationforecast: clouds, cloud layers, fog, precipitation, temperature, dew point and wind. The underlying model family depends on MET Norway coverage and forecast horizon.
-- CHMU ALADIN open data: low/mid/high/total cloud cover; the backend validates proximity to the native ALADIN grid before using it.
-- DWD ICON via Open-Meteo DWD ICON API: total/low/mid/high cloud cover from the DWD ICON seamless model family.
-- Internal Moon calculation: astronomical night, Moon phase, illumination, altitude and hourly interference.
-- Open-Meteo Air Quality API: CAMS AOD 550 and dust as surface concentration in `ug/m3`.
-- 7Timer ASTRO JSON API: seeing and transparency index.
+When ICON is unavailable, the proven MET + ALADIN two-model path remains available. When ALADIN is unavailable outside its supported region, MET + ICON can continue. The optional AOD, seeing and spatial layers are fail-open: failure of an advisory source must not crash the base forecast.
 
 ## Troubleshooting
 
-If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that the loader, manifest, `astro-start-card-v23.js` and `astro-start-card-base-v22.js` URLs open correctly, keep only the stable loader resource shown above, and refresh/restart Home Assistant.
-
-If ICON is unavailable, check the add-on log for `ICON CHYBA`. This should not stop the application; valid MET/ALADIN data continue through the proven two-model path.
-
-If a card loads but shows missing entities, first wait for `HA ENTITY: publikovano` in the add-on log. The backend restores missing states within one minute. Check these entities in **Developer Tools -> States**:
+If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that these URLs open in the same Home Assistant browser session:
 
 ```text
-sensor.astro_weather_detail
-sensor.astro_vhodnost_foceni
-sensor.mesic_foceni_predpoved
+https://YOUR-HA/local/astro-weather-cards-loader.js
+https://YOUR-HA/local/astro-weather-cards-manifest.json
+https://YOUR-HA/local/astro-start-card-v26.js
+https://YOUR-HA/local/moon-forecast-card-v25.js
 ```
 
-If they are still missing, restart **Astro Weather Backend** once and check the add-on log for `HA ENTITY CHYBA`.
+Keep only `/local/astro-weather-cards-loader.js` as the Astro Lovelace resource, then use **Ctrl+F5**.
 
-## Tests
+If the spatial layer is unavailable, the base forecast continues. Check the app log for `PROSTOR ICON VAROVANI` or `PROSTOR ALADIN VAROVANI`.
 
-GitHub Actions compiles all Python modules, checks the v23 JavaScript syntax, then runs the original 12.1 regression suite and the new ICON/multi-model regression suite independently.
+## Development Checks
 
-Run from repository root:
+GitHub Actions compile all Python modules, validate card JavaScript syntax, run the stable regression suites plus spatial-cloud tests, and build the Home Assistant container.
+
+Important local checks include:
 
 ```bash
-python3 -m py_compile astro_weather_backend/astro_weather_backend.py
-python3 -m py_compile astro_weather_backend/weather_models.py
-python3 -m py_compile astro_weather_backend/cloud_consensus.py
-python3 -m py_compile astro_weather_backend/model_runtime.py
-python3 -m py_compile astro_weather_backend/app.py
-node --check astro_weather_backend/cards/astro-start-card-v23.js
-python3 -m unittest -v tests/test_astro_weather_backend.py
-python3 -m unittest -v tests/test_model_consensus.py
+python3 -m py_compile astro_weather_backend/spatial_cloud_patch.py
+python3 -m unittest -v tests/test_spatial_cloud_patch.py
+python3 -m unittest -v tests/test_release_wiring.py
+node --check astro_weather_backend/cards/astro-start-card-v26.js
 ```
