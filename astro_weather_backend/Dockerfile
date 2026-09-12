@@ -35,6 +35,7 @@ COPY storage_protection_patch.py /app/storage_protection_patch.py
 COPY satellite_card_map_patch.py /app/satellite_card_map_patch.py
 COPY satellite_lowload_patch.py /app/satellite_lowload_patch.py
 COPY satellite_index_sampler_patch.py /app/satellite_index_sampler_patch.py
+COPY satellite_ui_patch.py /app/satellite_ui_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
 

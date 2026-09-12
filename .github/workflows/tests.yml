@@ -34,6 +34,7 @@ jobs:
           python -m py_compile astro_weather_backend/satellite_card_map_patch.py
           python -m py_compile astro_weather_backend/satellite_lowload_patch.py
           python -m py_compile astro_weather_backend/satellite_index_sampler_patch.py
+          python -m py_compile astro_weather_backend/satellite_ui_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
         run: |
@@ -44,6 +45,7 @@ jobs:
           node --check astro_weather_backend/cards/astro-start-card-v27.js
           node --check astro_weather_backend/cards/astro-start-card-v28.js
           node --check astro_weather_backend/cards/astro-start-card-v29.js
+          node --check astro_weather_backend/cards/astro-start-card-v30.js
           node --check astro_weather_backend/cards/astro-satellite-card.js
           node --check astro_weather_backend/cards/moon-forecast-card-v24.js
           node --check astro_weather_backend/cards/moon-forecast-card-v25.js
@@ -77,7 +79,9 @@ jobs:
         run: python -m unittest -v tests/test_satellite_lowload_patch.py
       - name: Satellite direct-index regression suite
         run: python -m unittest -v tests/test_satellite_index_sampler_patch.py
+      - name: Satellite UI regression suite
+        run: python -m unittest -v tests/test_satellite_ui_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.4.2 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.4.3 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
