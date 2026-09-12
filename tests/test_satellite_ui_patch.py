@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.6 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.7 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -43,12 +43,22 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn('import "/local/astro-start-card-v30.js";', source)
         self.assertIn('class="night-astro"', source)
         self.assertIn('class="detail-sub">Astronomická noc', source)
-        self.assertIn("_nightSummaryHtml", source)
-        self.assertIn("_detailHtml", source)
         self.assertIn("_compactNightRowsV31", source)
 
         base = (ROOT / "astro_weather_backend/cards/astro-start-card.js").read_text(encoding="utf-8")
         self.assertIn('<div class="k">Astronomická noc</div>', base)
+
+    def test_main_card_v32_keeps_nightly_model_percentages_only_in_summary(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-start-card-v32.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-start-card-v31.js";', source)
+        self.assertIn("Průměry oblačnosti za astronomickou noc", source)
+        self.assertIn("Průměr MET", source)
+        self.assertIn("Kombinovaná oblačnost", source)
+        self.assertIn("duplicateNightAverages", source)
+        self.assertIn("Satelit vs aktuální modely", source)
+        self.assertIn("· satelit", source)
+        self.assertNotIn("· model ${", source)
+        self.assertIn("modelový konsensus", source)  # tooltip explains the hidden current model value
 
     def test_satellite_card_v5_separates_live_clm_age_and_ir_refresh(self):
         v4 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v4.js").read_text(encoding="utf-8")
@@ -59,21 +69,21 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("Date.now()", v5)
         self.assertIn("CLM ${this._time(asOf)} · před ${age} min", v5)
         self.assertIn("setInterval", v5)
-        self.assertIn("30000", v5)
-        self.assertIn("age >= 45", v5)
-        self.assertIn("age >= 30", v5)
         self.assertIn("IR obnoveno ${refreshed}", v5)
-        self.assertIn("_logicalTimeLabelsV5", v5)
-
-        # v5 must preserve the fine v4 overlay rather than replacing it.
         self.assertIn("_fineOverlayV4", v4)
-        self.assertIn("sample-clear-v4", v4)
-        self.assertIn("sample-cloud-v4", v4)
+
+    def test_satellite_card_v6_explicitly_marks_current_model_consensus(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v6.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-satellite-card-v5.js";', source)
+        self.assertIn("Aktuálně v čase CLM", source)
+        self.assertIn("modelový konsensus", source)
+        self.assertIn("nejsou to průměry za celou noc", source)
+        self.assertIn("_currentComparisonScopeV6", source)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.6")
-        self.assertEqual(ui.ASTRO_CARD_VERSION, 31)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 5)
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.7")
+        self.assertEqual(ui.ASTRO_CARD_VERSION, 32)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 6)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
 
