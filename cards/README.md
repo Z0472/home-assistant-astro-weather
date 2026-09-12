@@ -1,48 +1,55 @@
 # Dashboard Cards
 
-The current card sources are kept here as TXT files for easy download and inspection:
+The current manual-inspection/fallback sources are:
 
-- `astro-start-card-v25.txt`
+- `astro-start-card-v26.txt`
 - `moon-forecast-card-v25.txt`
 
-The same current cards are bundled inside the add-on image and copied automatically on startup to `/config/www/` together with their required dependency modules and the stable loader. The current physical entry modules are:
+The normal install path is the Home Assistant app. It copies all required JavaScript modules to `/config/www` and maintains one stable Lovelace resource.
+
+## Current Entry Modules
 
 ```text
-/config/www/astro-start-card-v25.js
+/config/www/astro-start-card-v26.js
 /config/www/moon-forecast-card-v25.js
 /config/www/astro-weather-cards-loader.js
 /config/www/astro-weather-cards-manifest.json
 ```
 
-The TXT files are a manual inspection/fallback copy. The normal install path is the add-on.
+Older module layers required by v26/v25 are installed automatically. They are implementation dependencies, not separate Lovelace resources.
 
 ## Lovelace Resource
 
-The add-on copies the JavaScript files into `/config/www` and, in normal Lovelace storage mode, automatically creates or migrates a single stable resource:
-
-In Home Assistant open **Settings -> Dashboards -> Resources** and verify:
+In Home Assistant open **Settings -> Dashboards -> Resources** and verify exactly this Astro Weather resource:
 
 | URL | Resource type |
 | --- | --- |
 | `/local/astro-weather-cards-loader.js` | JavaScript module |
 
-If the Resources page is not visible, try the direct Home Assistant path:
+The loader reads `/local/astro-weather-cards-manifest.json` without browser caching and imports the current card versions. Future app updates therefore do not require editing Lovelace resource URLs.
+
+After an upgrade use **Ctrl+F5** if Home Assistant still displays an already loaded older custom element.
+
+## v26 Decision Card
+
+The main card stays intentionally compact. Spatial cloud analysis can use 17 neighbourhood points and several diagnostics internally, but the visible card normally shows only one short operational message such as:
 
 ```text
-/config/lovelace/resources
+✓ Okolí stabilně jasné
+☁ Oblačnost přichází ~1 h 15 min od Z
+🌙 Vyjasnění ~45 min
+⚠ Hrana oblačnosti v okolí · ~14 km Z
 ```
 
-The loader reads `/local/astro-weather-cards-manifest.json` without browser caching and imports the current physical card versions. Future updates therefore do not require changing Lovelace URLs. Existing `astro-start-card-vNN.js` and `moon-forecast-card-vNN.js` entries are consolidated automatically; unrelated resources are left untouched.
+Detailed centre/min/max cloud, spatial stability, contributing sources, dominant cloud layer and pressure-level wind remain in the tooltip/entity attributes rather than crowding the card.
 
-After an upgrade use a hard browser refresh (`Ctrl+F5`) if Home Assistant still shows an older already-loaded custom element.
+Other current behavior:
 
-## Current v25 behavior
-
-- `Důvěra` is shown as **Shoda modelů**, because the percentage represents inter-model agreement, not a calibrated probability that the forecast will be correct.
-- A cloud-only `NESPOUŠTĚT` is softened to `NEJISTÉ` when model agreement is below 60 % and no hard veto is present.
-- Hard vetoes such as precipitation, fog, excessive wind, interfering Moon, bad AOD or bad seeing still keep `NESPOUŠTĚT`.
-- The hourly strip runs from apparent sunset to the following sunrise, while the operational imaging decision still uses only astronomical darkness.
-- Nighttime hourly weather icons never use a Sun symbol; partly cloudy night hours use the Moon/night variant.
+- `Shoda modelů` is inter-model agreement, not a forecast-success probability.
+- A cloud-only `NESPOUŠTĚT` can become `NEJISTÉ` when model agreement is weak.
+- Hard vetoes remain authoritative.
+- The hourly strip runs from sunset to sunrise, while the operational decision uses only astronomical darkness.
+- Nighttime hourly icons do not use a Sun symbol.
 
 ## Card YAML
 
@@ -58,7 +65,7 @@ grid_options:
   columns: full
 ```
 
-Moon and longer forecast overview:
+Moon / long-range overview:
 
 ```yaml
 type: custom:moon-forecast-card
@@ -70,7 +77,7 @@ grid_options:
   columns: full
 ```
 
-Both cards in one vertical stack:
+Both cards:
 
 ```yaml
 type: vertical-stack
@@ -95,8 +102,8 @@ Open these URLs in the same Home Assistant browser session:
 ```text
 https://YOUR-HA/local/astro-weather-cards-loader.js
 https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v25.js
+https://YOUR-HA/local/astro-start-card-v26.js
 https://YOUR-HA/local/moon-forecast-card-v25.js
 ```
 
-The loader and cards must show JavaScript source and the manifest must show JSON. If they return `404: Not Found`, the add-on has not copied the files yet or `install_dashboard_cards` is disabled.
+If they return `404: Not Found`, the app has not copied the files yet or `install_dashboard_cards` is disabled.
