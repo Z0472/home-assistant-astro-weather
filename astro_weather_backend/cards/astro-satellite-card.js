@@ -169,6 +169,7 @@ class AstroSatelliteCard extends HTMLElement {
     }
     const confidence = this._num(sat.nowcast_confidence_pct);
     const trend = sat.short_text || `${sat.arrow || "→"} ${this._cloudLabel(cloud)}`;
+    const edgeSuffix = sat.short_text ? "" : edgeText;
 
     let compareHtml = `<span style="color:var(--secondary-text-color)">Modelový konsensus zatím nelze porovnat.</span>`;
     if (cmpObj && cmpObj.state !== "unavailable" && cmp.available) {
@@ -195,7 +196,7 @@ class AstroSatelliteCard extends HTMLElement {
             <div class="icon">${this._cloudIcon(cloud)}</div>
             <div>
               <div class="cloud">${cloud !== null ? cloud.toFixed(0) + " %" : "—"} · ${this._escape(this._cloudLabel(cloud))}</div>
-              <div class="summary">${this._escape(trend)}${this._escape(edgeText)}</div>
+              <div class="summary">${this._escape(trend)}${this._escape(edgeSuffix)}</div>
             </div>
           </div>
 
