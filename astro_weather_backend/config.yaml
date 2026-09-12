@@ -1,6 +1,6 @@
 name: "Astro Weather Backend"
 description: "Predpoved MET + CHMU ALADIN + DWD ICON + prostorova oblacnost + EUMETSAT MTG satelit + interni Mesic + CAMS/Open-Meteo AOD + 7Timer seeing"
-version: "12.4.3"
+version: "12.4.4"
 slug: "astro_weather_backend"
 url: "https://github.com/Z0472/home-assistant-astro-weather"
 init: false
@@ -21,7 +21,7 @@ options:
   timezone: "Europe/Prague"
   refresh_minutes: 30
   horizon_hours: 72
-  met_user_agent: "AstroWeatherBackend/12.4.3 https://github.com/Z0472/home-assistant-astro-weather"
+  met_user_agent: "AstroWeatherBackend/12.4.4 https://github.com/Z0472/home-assistant-astro-weather"
   moon_entity: "sensor.mesic_foceni_predpoved"
   moon_horizon_days: 45
   moon_interference_illumination_pct: 15.0

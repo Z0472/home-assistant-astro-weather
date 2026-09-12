@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Astro Weather Backend 12.4.3 entrypoint."""
+"""Astro Weather Backend 12.4.4 entrypoint."""
 import astro_weather_backend as core
 import model_runtime
 import confidence_patch

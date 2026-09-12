@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.3 satellite UI refinements."""
+"""Regression tests for Astro Weather 12.4.4 satellite UI refinements."""
 import math
 import sys
 import unittest
@@ -12,7 +12,7 @@ import satellite_ui_patch as ui
 
 
 class SatelliteUiPatchTests(unittest.TestCase):
-    def test_regional_ir_url_is_centered_and_about_150km_radius(self):
+    def test_regional_ir_url_is_centered_square_and_about_150km_radius(self):
         lat = 48.9311
         lon = 14.3553
         url = ui._regional_ir_url({"latitude": lat, "longitude": lon})
@@ -24,7 +24,7 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertEqual(query["version"], ["1.3.0"])
         self.assertEqual(query["crs"], ["EPSG:4326"])
         self.assertEqual(query["width"], ["900"])
-        self.assertEqual(query["height"], ["600"])
+        self.assertEqual(query["height"], ["900"])
         self.assertIn("mtg_fd:ir105_hrfi", query["layers"][0])
 
         south, west, north, east = [float(x) for x in query["bbox"][0].split(",")]
@@ -38,7 +38,7 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertGreater(ew_radius_km, 145.0)
         self.assertLess(ew_radius_km, 155.0)
 
-    def test_main_card_moves_live_satellite_line_to_today_only(self):
+    def test_main_card_keeps_live_satellite_line_today_only(self):
         source = (ROOT / "astro_weather_backend/cards/astro-start-card-v30.js").read_text(encoding="utf-8")
         self.assertIn('import "/local/astro-start-card-v29.js";', source)
         self.assertIn("idx !== 0", source)
@@ -47,11 +47,28 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("satellite-agreement-v29", source)
         self.assertIn("_detailHtml", source)
 
+    def test_satellite_card_has_combined_overlay_and_cache_buster(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card.js").read_text(encoding="utf-8")
+        self.assertIn("astro-satellite-card v3", source)
+        self.assertIn("_astro_refresh", source)
+        self.assertIn("satObj?.last_updated", source)
+        self.assertIn("aspect-ratio:1/1", source)
+        self.assertIn("CLM vzorky · kruhy", source)
+        self.assertIn("mapRadius / 2", source)
+        self.assertIn("sample-clear", source)
+        self.assertIn("#2196f3", source)
+        self.assertIn("sample-cloud", source)
+        self.assertIn("#9e9e9e", source)
+        self.assertIn("observatoř", source)
+        self.assertIn("visual-overlay", source)
+        self.assertNotIn("CLM mapa vzorků", source)
+
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.3")
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.4")
         self.assertEqual(ui.ASTRO_CARD_VERSION, 30)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 2)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 3)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
+        self.assertEqual(ui.VISUAL_SIZE_PX, 900)
 
 
 if __name__ == "__main__":
