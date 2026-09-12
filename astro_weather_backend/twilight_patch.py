@@ -1,9 +1,10 @@
-"""Normalize sunset-to-sunrise twilight flags for Astro Weather Backend 12.3.2."""
+"""Normalize sunset-to-sunrise twilight flags for Astro Weather Backend 12.3.3."""
 from __future__ import annotations
 
 from typing import Any
 
-RELEASE_VERSION = "12.3.2"
+RELEASE_VERSION = "12.3.3"
+ASTRO_CARD_VERSION = 28
 
 
 def normalize_display_twilight(core: Any, result: dict[str, Any]) -> None:
@@ -63,5 +64,11 @@ def install(core: Any) -> None:
 
     core.analyze_night = analyze_night
     core.APP_VERSION = RELEASE_VERSION
+    core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
+    current_installs = list(core.DASHBOARD_CARD_INSTALLS)
+    target = f"astro-start-card-v{ASTRO_CARD_VERSION}.js"
+    if not any(dst == target for _, dst in current_installs):
+        current_installs.append((target, target))
+    core.DASHBOARD_CARD_INSTALLS = tuple(current_installs)
     core.Handler.server_version = f"AstroWeatherBackend/{RELEASE_VERSION}"
     core._TWILIGHT_PATCH_INSTALLED = True
