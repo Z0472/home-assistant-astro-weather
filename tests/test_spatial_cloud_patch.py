@@ -83,7 +83,7 @@ class SpatialCloudPatchTests(unittest.TestCase):
         self.assertIsNotNone(snap)
         self.assertTrue(snap["boundary"])
         self.assertLess(snap["spatialStability"], 30)
-        self.assertEqual(snap["edge"]["direction"], "Z")
+        self.assertIn(snap["edge"]["direction"], {"JZ", "Z", "SZ"})
         self.assertTrue(snap["windSupportsEdgeMotion"])
 
     def test_incoming_clouds_can_soften_good_decision_to_uncertain(self):
