@@ -16,6 +16,7 @@ import spatial_cloud_patch
 import spatial_timeline_patch
 import twilight_patch
 import state_cache_patch
+import entity_watchdog_patch
 import edge_consistency_patch
 import satellite_nowcast_patch
 
@@ -30,6 +31,7 @@ class ReleaseWiringTests(unittest.TestCase):
         spatial_timeline_patch.install(core)
         twilight_patch.install(core)
         state_cache_patch.install(core)
+        entity_watchdog_patch.install(core)
         edge_consistency_patch.install(core)
         satellite_nowcast_patch.install(core)
 
@@ -44,7 +46,9 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("satellite_radius_km: 30", config)
         self.assertIn("satellite_refresh_minutes: 10", config)
         self.assertIn("eumetsat_consumer_secret: password", config)
+        self.assertIn("COPY entity_watchdog_patch.py", docker)
         self.assertIn("COPY satellite_nowcast_patch.py", docker)
+        self.assertIn("entity_watchdog_patch.install(core)", app)
         self.assertIn("satellite_nowcast_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
         self.assertEqual(core.APP_VERSION, "12.4.0")
