@@ -7,8 +7,8 @@ import night_forecast_patch
 import spatial_cloud_patch
 import spatial_timeline_patch
 import twilight_patch
-import edge_consistency_patch
 import state_cache_patch
+import edge_consistency_patch
 
 model_runtime.install(core)
 confidence_patch.install(core)
@@ -16,8 +16,8 @@ night_forecast_patch.install(core)
 spatial_cloud_patch.install(core)
 spatial_timeline_patch.install(core)
 twilight_patch.install(core)
-edge_consistency_patch.install(core)
 state_cache_patch.install(core)
+edge_consistency_patch.install(core)
 
 if __name__ == "__main__":
     core.main()
