@@ -47,6 +47,7 @@ jobs:
           node --check astro_weather_backend/cards/astro-start-card-v29.js
           node --check astro_weather_backend/cards/astro-start-card-v30.js
           node --check astro_weather_backend/cards/astro-satellite-card.js
+          node --check astro_weather_backend/cards/astro-satellite-card-v4.js
           node --check astro_weather_backend/cards/moon-forecast-card-v24.js
           node --check astro_weather_backend/cards/moon-forecast-card-v25.js
       - name: Stable 12.1 regression suite
@@ -84,4 +85,4 @@ jobs:
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.4.4 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.4.5 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
