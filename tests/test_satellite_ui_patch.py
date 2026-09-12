@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.4 satellite UI refinements."""
+"""Regression tests for Astro Weather 12.4.5 satellite UI refinements."""
 import math
 import sys
 import unittest
@@ -47,26 +47,31 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("satellite-agreement-v29", source)
         self.assertIn("_detailHtml", source)
 
-    def test_satellite_card_has_combined_overlay_and_cache_buster(self):
-        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card.js").read_text(encoding="utf-8")
-        self.assertIn("astro-satellite-card v3", source)
-        self.assertIn("_astro_refresh", source)
-        self.assertIn("satObj?.last_updated", source)
-        self.assertIn("aspect-ratio:1/1", source)
-        self.assertIn("CLM vzorky · kruhy", source)
-        self.assertIn("mapRadius / 2", source)
-        self.assertIn("sample-clear", source)
-        self.assertIn("#2196f3", source)
-        self.assertIn("sample-cloud", source)
-        self.assertIn("#9e9e9e", source)
-        self.assertIn("observatoř", source)
-        self.assertIn("visual-overlay", source)
-        self.assertNotIn("CLM mapa vzorků", source)
+    def test_satellite_card_v4_is_larger_finer_and_has_no_overlay_text(self):
+        base = (ROOT / "astro_weather_backend/cards/astro-satellite-card.js").read_text(encoding="utf-8")
+        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v4.js").read_text(encoding="utf-8")
+
+        self.assertIn("_astro_refresh", base)
+        self.assertIn("satObj?.last_updated", base)
+        self.assertIn('import "/local/astro-satellite-card-v3.js";', source)
+        self.assertIn("_fineOverlayV4", source)
+        self.assertIn("width:calc(100% + 10px)", source)
+        self.assertIn("padding-left:8px", source)
+        self.assertIn("stroke-width:1.35", source)
+        self.assertIn('r="${pos.center ? 6 : 5}"', source)
+        self.assertIn("sample-clear-v4", source)
+        self.assertIn("33,150,243", source)
+        self.assertIn("sample-cloud-v4", source)
+        self.assertIn("158,158,158", source)
+        self.assertIn("observatory-ring-v4", source)
+        self.assertIn("kruhy ${(mapRadius / 2).toFixed(0)} / ${mapRadius.toFixed(0)} km", source)
+        self.assertNotIn("<text", source)
+        self.assertNotIn("overlay-legend", source)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.4")
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.5")
         self.assertEqual(ui.ASTRO_CARD_VERSION, 30)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 3)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 4)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
 
