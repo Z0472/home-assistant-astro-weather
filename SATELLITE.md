@@ -17,6 +17,21 @@ EUMETSAT catalogue discovery is anonymous, but Data Store downloads require a re
 
 When no credentials are present the integration is fail-open: existing weather/model decisions continue unchanged, quantitative satellite entities are `unavailable`, and the card offers the public EUMETView MTG IR10.5 visualisation instead. The WMS image is intentionally **not** converted into a fake cloud percentage because it is a styled, non-queryable image rather than geophysical pixel data.
 
+## SD-card protection
+
+Astro Weather is expected to run continuously on small Home Assistant hardware, including Raspberry Pi systems booting from an SD card. Large transient weather files therefore must not create unnecessary flash write amplification.
+
+From 12.4.0:
+
+- the downloaded EUMETSAT SIP/ZIP stays only in Python memory;
+- the extracted MTG/FCI GRIB2 is written only to `/dev/shm` (container RAM tmpfs), sampled, and immediately deleted;
+- satellite and ALADIN large-GRIB processing share one lock so only one large scratch GRIB is present in RAM at a time;
+- ALADIN keeps only its **compressed current-run cache** under `/data/cache`; its temporary decompressed `.grb` is created in `/dev/shm` and removed immediately;
+- if `/dev/shm` is unavailable or too small, the backend fails that data source open rather than silently falling back to a large temporary write on the SD card;
+- the satellite sample cache remains only a small JSON containing at most seven recent sampled frames, not full satellite images.
+
+A real operational CLM test on 2026-09-12 returned a roughly 3.3 MB compressed SIP with a roughly 22.3 MB GRIB2 payload, so this change avoids repeated multi-megabyte transient writes every ten minutes.
+
 ## Home Assistant App options
 
 ```yaml
