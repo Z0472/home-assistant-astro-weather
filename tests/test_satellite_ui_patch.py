@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.7 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.8 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -58,7 +58,7 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("Satelit vs aktuální modely", source)
         self.assertIn("· satelit", source)
         self.assertNotIn("· model ${", source)
-        self.assertIn("modelový konsensus", source)  # tooltip explains the hidden current model value
+        self.assertIn("modelový konsensus", source)
 
     def test_satellite_card_v5_separates_live_clm_age_and_ir_refresh(self):
         v4 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v4.js").read_text(encoding="utf-8")
@@ -80,10 +80,22 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("nejsou to průměry za celou noc", source)
         self.assertIn("_currentComparisonScopeV6", source)
 
+    def test_satellite_card_v7_starts_age_timer_from_render_and_hass_setter(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v7.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-satellite-card-v6.js";', source)
+        self.assertIn("_ensureLiveClmAgeTimerV7", source)
+        self.assertIn("_satAgeTimerV5", source)
+        self.assertIn("setInterval", source)
+        self.assertIn("30000", source)
+        self.assertIn('Object.getOwnPropertyDescriptor(proto, "hass")', source)
+        self.assertIn("oldHassSetter.call(this, hass)", source)
+        self.assertIn("oldRender.call(this)", source)
+        self.assertIn("_updateLiveClmAgeV5", source)
+
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.7")
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.8")
         self.assertEqual(ui.ASTRO_CARD_VERSION, 32)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 6)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 7)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
 
