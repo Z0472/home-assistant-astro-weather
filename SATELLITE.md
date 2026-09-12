@@ -48,7 +48,7 @@ The secret is declared as a Home Assistant `password` option and is never publis
 
 ## Published entities
 
-- `sensor.astro_satelit_oblacnost` — observed local neighbourhood cloud fraction from the latest CLM frame. Attributes contain acquisition time, age, trend, 0–3 h nowcast, stable edge/ETA and diagnostics.
+- `sensor.astro_satelit_oblacnost` — observed local neighbourhood cloud fraction from the latest CLM frame. Attributes contain acquisition time, age, trend, 0–3 h nowcast, stable edge/ETA, and the exact 17 CLM sample values shown by the card.
 - `sensor.astro_model_satelit_shoda` — current agreement percentage between the complete available MET + ALADIN + ICON cloud consensus and satellite reality.
 - `sensor.astro_met_satelit_chyba` — MET absolute error in percentage points against the same satellite observation.
 - `sensor.astro_aladin_satelit_chyba` — ALADIN absolute error.
@@ -64,6 +64,19 @@ Direction is intentionally conservative. It is shown only when **three consecuti
 
 The separate card displays `TEĎ`, `+1 h`, `+2 h`, `+3 h`. `TEĎ` is the latest observation; future values are an explicitly labelled short extrapolative nowcast derived from several recent CLM frames. They are not presented as future satellite measurements.
 
+## CLM map on the card
+
+Satellite card v2 displays a lightweight local CLM map by default. It does **not** decode or retain another large image. The map renders the exact 17 categorical samples already used by the backend:
+
+- centre = observatory;
+- inner ring = eight directions at R/2;
+- outer ring = eight directions at R;
+- green = clear;
+- light cloud marker = cloud;
+- grey = no data.
+
+This makes the visualisation directly auditable while adding virtually no CPU, RAM, or SD-card load. It is deliberately labelled as a sample map rather than an interpolated full-resolution image.
+
 ## Dashboard card
 
 After the App has installed/reloaded the Astro card resources, add:
@@ -72,9 +85,10 @@ After the App has installed/reloaded the Astro card resources, add:
 type: custom:astro-satellite-card
 satellite_entity: sensor.astro_satelit_oblacnost
 comparison_entity: sensor.astro_model_satelit_shoda
+show_clm_map: true
 show_image: false
 ```
 
-Set `show_image: true` only when the public EUMETView IR panel is desired inside the card.
+`show_clm_map: true` is the default and shows the exact CLM samples used by the calculation. Set `show_image: true` only when the public EUMETView IR panel is also desired inside the card.
 
 The main `astro-start-card` remains compact: it only shows the current model-consensus versus satellite agreement. Detailed satellite diagnostics stay on the dedicated card and in entity attributes.
