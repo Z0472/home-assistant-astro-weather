@@ -1,10 +1,11 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.8.
+"""Satellite UI refinements for Astro Weather Backend 12.4.9.
 
-Keeps nightly model averages and instantaneous satellite/model comparison
-separate and unambiguous. Main card v32 shows nightly cloud averages only in
-the top night cards and removes their duplicate detail-row presentation.
-Satellite card v7 keeps the explicit CLM-time model scope and guarantees that
-live CLM age updates start even for already-connected Lovelace card instances.
+Separates the categorical CLM state directly over the observatory from the
+regional 17-sample cloud fraction used for short-term trend/nowcast. Model
+comparison is now spatially consistent: the current model consensus is compared
+with the centre CLM sample, while the 30 km sample fraction remains a regional
+context and nowcast metric. Main card v33 and satellite card v8 make this scope
+explicit.
 """
 from __future__ import annotations
 
@@ -17,9 +18,9 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.8"
-ASTRO_CARD_VERSION = 32
-SATELLITE_CARD_VERSION = 7
+RELEASE_VERSION = "12.4.9"
+ASTRO_CARD_VERSION = 33
+SATELLITE_CARD_VERSION = 8
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
 
@@ -54,6 +55,7 @@ def install(core: Any) -> None:
         return
 
     old_document = sat._satellite_document
+    old_comparison = sat._comparison
 
     def satellite_document(core_arg: Any, options: dict[str, Any]) -> dict[str, Any]:
         document = dict(old_document(core_arg, options))
@@ -66,10 +68,44 @@ def install(core: Any) -> None:
         }
         return document
 
-    sat._satellite_document = satellite_document
+    def local_comparison(core_arg: Any, options: dict[str, Any], satellite: dict[str, Any]) -> dict[str, Any]:
+        """Compare point-model cloud with the CLM sample at the same location.
 
-    # v32 imports v31 -> v30. v7 imports v6 -> v5 -> v4 -> v3. Install the
-    # whole dependency chain so clean Home Assistant installs are self-contained.
+        The previous implementation compared a model value at the observatory
+        against the fraction of cloudy CLM samples across the whole 30 km
+        neighbourhood. Those are different spatial quantities. The regional
+        fraction is still retained for trend/nowcast, but not for model skill.
+        """
+        center = sat._safe(satellite.get("center_cloud_pct"))
+        area = sat._safe(satellite.get("cloud_pct"))
+        radius = int(satellite.get("radius_km") or options.get("satellite_radius_km") or 30)
+        if center is None:
+            return {
+                "state": "unavailable",
+                "available": False,
+                "backend_version": RELEASE_VERSION,
+                "satellite_area_cloud_pct": area,
+                "satellite_as_of": satellite.get("as_of"),
+                "satellite_scope": "observatory_center",
+                "satellite_radius_km": radius,
+                "reason": "CLM vzorek přímo nad observatoří není k dispozici.",
+            }
+
+        local_satellite = dict(satellite)
+        local_satellite["cloud_pct"] = center
+        result = dict(old_comparison(core_arg, options, local_satellite))
+        result["satellite_local_cloud_pct"] = round(center, 1)
+        result["satellite_area_cloud_pct"] = None if area is None else round(area, 1)
+        result["satellite_scope"] = "observatory_center"
+        result["satellite_radius_km"] = radius
+        return result
+
+    sat._satellite_document = satellite_document
+    sat._comparison = local_comparison
+
+    # v33 imports v32 -> v31 -> v30. v8 imports v7 -> v6 -> v5 -> v4 -> v3.
+    # Install the full dependency chain so a clean Home Assistant install is
+    # self-contained and never depends on old browser/cache files.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -77,7 +113,11 @@ def install(core: Any) -> None:
     for source, target in core.DASHBOARD_CARD_INSTALLS:
         if target.startswith("astro-satellite-card-v"):
             continue
-        if target.startswith("astro-start-card-v31") or target.startswith("astro-start-card-v32"):
+        if (
+            target.startswith("astro-start-card-v31")
+            or target.startswith("astro-start-card-v32")
+            or target.startswith("astro-start-card-v33")
+        ):
             continue
         installs.append((source, target))
 
@@ -85,12 +125,14 @@ def install(core: Any) -> None:
         installs.append(("astro-start-card-v30.js", "astro-start-card-v30.js"))
     installs.append(("astro-start-card-v31.js", "astro-start-card-v31.js"))
     installs.append(("astro-start-card-v32.js", "astro-start-card-v32.js"))
+    installs.append(("astro-start-card-v33.js", "astro-start-card-v33.js"))
 
     installs.append(("astro-satellite-card.js", "astro-satellite-card-v3.js"))
     installs.append(("astro-satellite-card-v4.js", "astro-satellite-card-v4.js"))
     installs.append(("astro-satellite-card-v5.js", "astro-satellite-card-v5.js"))
     installs.append(("astro-satellite-card-v6.js", "astro-satellite-card-v6.js"))
     installs.append(("astro-satellite-card-v7.js", "astro-satellite-card-v7.js"))
+    installs.append(("astro-satellite-card-v8.js", "astro-satellite-card-v8.js"))
     core.DASHBOARD_CARD_INSTALLS = tuple(installs)
 
     sat.RELEASE_VERSION = RELEASE_VERSION
