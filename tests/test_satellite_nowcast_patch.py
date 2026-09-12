@@ -110,6 +110,17 @@ class SatelliteNowcastTests(unittest.TestCase):
         self.assertEqual(set(result["models"]), {"MET", "ALADIN", "ICON"})
         self.assertEqual(result["models"]["MET"]["absolute_error_pp"], 15.0)
 
+    def test_operational_grib_product_id_uses_validity_interval_end(self):
+        product_id = (
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-CLM--FD------GRIB2_"
+            "C_EUMT_20260912172557_L2PF_OPE_20260912171000_20260912172000_N__O_0104_0000"
+        )
+        parsed = sat._product_time(product_id, {})
+        self.assertEqual(
+            parsed,
+            datetime(2026, 9, 12, 17, 20, tzinfo=timezone.utc),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
