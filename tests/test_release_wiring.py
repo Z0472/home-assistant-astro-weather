@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.3.1."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.3.2."""
 import json
 import sys
 import tempfile
@@ -31,7 +31,7 @@ class ReleaseWiringTests(unittest.TestCase):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.3.1"', config)
+        self.assertIn('version: "12.3.2"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("spatial_radius_km: 30", config)
@@ -84,7 +84,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("Průměrná shoda modelů", moon)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.3.1")
+            self.assertEqual(manifest["backend_version"], "12.3.2")
             self.assertEqual(manifest["cards"][0]["version"], 27)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v27.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
