@@ -1,10 +1,10 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.7.
+"""Satellite UI refinements for Astro Weather Backend 12.4.8.
 
 Keeps nightly model averages and instantaneous satellite/model comparison
 separate and unambiguous. Main card v32 shows nightly cloud averages only in
 the top night cards and removes their duplicate detail-row presentation.
-Satellite card v6 labels its model percentage explicitly as the current model
-consensus at the CLM observation time.
+Satellite card v7 keeps the explicit CLM-time model scope and guarantees that
+live CLM age updates start even for already-connected Lovelace card instances.
 """
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.7"
+RELEASE_VERSION = "12.4.8"
 ASTRO_CARD_VERSION = 32
-SATELLITE_CARD_VERSION = 6
+SATELLITE_CARD_VERSION = 7
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
 
@@ -68,8 +68,8 @@ def install(core: Any) -> None:
 
     sat._satellite_document = satellite_document
 
-    # v32 imports v31 -> v30. v6 imports v5 -> v4 -> v3. Install the whole
-    # dependency chain so clean Home Assistant installs are self-contained.
+    # v32 imports v31 -> v30. v7 imports v6 -> v5 -> v4 -> v3. Install the
+    # whole dependency chain so clean Home Assistant installs are self-contained.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -90,6 +90,7 @@ def install(core: Any) -> None:
     installs.append(("astro-satellite-card-v4.js", "astro-satellite-card-v4.js"))
     installs.append(("astro-satellite-card-v5.js", "astro-satellite-card-v5.js"))
     installs.append(("astro-satellite-card-v6.js", "astro-satellite-card-v6.js"))
+    installs.append(("astro-satellite-card-v7.js", "astro-satellite-card-v7.js"))
     core.DASHBOARD_CARD_INSTALLS = tuple(installs)
 
     sat.RELEASE_VERSION = RELEASE_VERSION
