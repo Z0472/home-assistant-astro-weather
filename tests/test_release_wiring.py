@@ -20,6 +20,7 @@ import entity_watchdog_patch
 import edge_consistency_patch
 import satellite_nowcast_patch
 import storage_protection_patch
+import satellite_card_map_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -36,6 +37,7 @@ class ReleaseWiringTests(unittest.TestCase):
         edge_consistency_patch.install(core)
         satellite_nowcast_patch.install(core)
         storage_protection_patch.install(core)
+        satellite_card_map_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
@@ -51,12 +53,15 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY entity_watchdog_patch.py", docker)
         self.assertIn("COPY satellite_nowcast_patch.py", docker)
         self.assertIn("COPY storage_protection_patch.py", docker)
+        self.assertIn("COPY satellite_card_map_patch.py", docker)
         self.assertIn("entity_watchdog_patch.install(core)", app)
         self.assertIn("satellite_nowcast_patch.install(core)", app)
         self.assertIn("storage_protection_patch.install(core)", app)
+        self.assertIn("satellite_card_map_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
         self.assertEqual(core.APP_VERSION, "12.4.0")
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
+        self.assertTrue(getattr(core, "_SATELLITE_CARD_MAP_PATCH_INSTALLED", False))
 
     def test_v29_and_satellite_card_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
@@ -74,15 +79,17 @@ class ReleaseWiringTests(unittest.TestCase):
 
             self.assertTrue(ok)
             self.assertTrue(target.joinpath("astro-start-card-v29.js").exists())
-            self.assertTrue(target.joinpath("astro-satellite-card-v1.js").exists())
+            self.assertTrue(target.joinpath("astro-satellite-card-v2.js").exists())
             self.assertTrue(target.joinpath("astro-weather-cards-loader.js").exists())
 
             astro = target.joinpath("astro-start-card-v29.js").read_text(encoding="utf-8")
-            satellite = target.joinpath("astro-satellite-card-v1.js").read_text(encoding="utf-8")
+            satellite = target.joinpath("astro-satellite-card-v2.js").read_text(encoding="utf-8")
             self.assertIn('import "/local/astro-start-card-v28.js";', astro)
             self.assertIn("Satelit vs modely", astro)
             self.assertIn('customElements.define("astro-satellite-card"', satellite)
             self.assertIn("+1 až +3 h je nowcast", satellite)
+            self.assertIn("CLM mapa vzorků", satellite)
+            self.assertIn("show_clm_map: true", satellite)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["backend_version"], "12.4.0")
@@ -91,7 +98,8 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertEqual(manifest["cards"][1]["version"], 25)
             sat_cards = [row for row in manifest["cards"] if row.get("type") == "astro-satellite-card"]
             self.assertEqual(len(sat_cards), 1)
-            self.assertEqual(sat_cards[0]["url"], "/local/astro-satellite-card-v1.js")
+            self.assertEqual(sat_cards[0]["version"], 2)
+            self.assertEqual(sat_cards[0]["url"], "/local/astro-satellite-card-v2.js")
 
 
 if __name__ == "__main__":
