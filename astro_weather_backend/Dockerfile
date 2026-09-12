@@ -8,8 +8,7 @@ LABEL \
   io.hass.type="app" \
   io.hass.arch="${BUILD_ARCH}"
 
-# Používáme CLI nástroje ecCodes (grib_get + grib_ls), ne Python bindings.
-# grib_get čte ALADIN a grib_ls ověřuje, že lokalita leží u nativní sítě modelu.
+# ecCodes is reused for CHMI ALADIN and EUMETSAT MTG/FCI Cloud Mask GRIB-2.
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
     && apk add --no-cache \
        python3 \
@@ -30,6 +29,7 @@ COPY spatial_timeline_patch.py /app/spatial_timeline_patch.py
 COPY twilight_patch.py /app/twilight_patch.py
 COPY edge_consistency_patch.py /app/edge_consistency_patch.py
 COPY state_cache_patch.py /app/state_cache_patch.py
+COPY satellite_nowcast_patch.py /app/satellite_nowcast_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
 
