@@ -24,6 +24,8 @@ jobs:
           python -m py_compile astro_weather_backend/confidence_patch.py
           python -m py_compile astro_weather_backend/night_forecast_patch.py
           python -m py_compile astro_weather_backend/spatial_cloud_patch.py
+          python -m py_compile astro_weather_backend/spatial_timeline_patch.py
+          python -m py_compile astro_weather_backend/state_cache_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
         run: |
@@ -31,6 +33,7 @@ jobs:
           node --check astro_weather_backend/cards/astro-start-card-v24.js
           node --check astro_weather_backend/cards/astro-start-card-v25.js
           node --check astro_weather_backend/cards/astro-start-card-v26.js
+          node --check astro_weather_backend/cards/astro-start-card-v27.js
           node --check astro_weather_backend/cards/moon-forecast-card-v24.js
           node --check astro_weather_backend/cards/moon-forecast-card-v25.js
       - name: Stable 12.1 regression suite
@@ -43,7 +46,11 @@ jobs:
         run: python -m unittest -v tests/test_night_forecast_patch.py
       - name: Spatial cloud regression suite
         run: python -m unittest -v tests/test_spatial_cloud_patch.py
+      - name: Spatial timeline regression suite
+        run: python -m unittest -v tests/test_spatial_timeline_patch.py
+      - name: State cache regression suite
+        run: python -m unittest -v tests/test_state_cache_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.3.0 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.3.1 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
