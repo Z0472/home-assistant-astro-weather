@@ -8,6 +8,7 @@ import spatial_cloud_patch
 import spatial_timeline_patch
 import twilight_patch
 import state_cache_patch
+import entity_watchdog_patch
 import edge_consistency_patch
 import satellite_nowcast_patch
 
@@ -18,6 +19,7 @@ spatial_cloud_patch.install(core)
 spatial_timeline_patch.install(core)
 twilight_patch.install(core)
 state_cache_patch.install(core)
+entity_watchdog_patch.install(core)
 edge_consistency_patch.install(core)
 satellite_nowcast_patch.install(core)
 
