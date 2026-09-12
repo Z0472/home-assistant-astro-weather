@@ -43,21 +43,22 @@ def merge_sources_wrapped(core: Any, original: Any, met: dict[str, Any], aladin:
     return rows
 
 
-def _generic_conflict_reason(core: Any, analysis: dict[str, Any]) -> str | None:
+def _generic_conflict_reason(core: Any, analysis: dict[str, Any], options: dict[str, Any] | None = None) -> str | None:
     rows = [h for h in analysis.get("hours", []) if h.get("strongDisagreement")]
     if not rows:
         return None
     worst = max(rows, key=lambda h: core.safe_float(h.get("modelSpread")) or 0)
-    bits = []
-    for key, label in (("metTotal", "MET"), ("aladinTotal", "ALADIN"), ("iconTotal", "ICON")):
-        value = core.safe_float(worst.get(key))
-        if value is not None:
-            bits.append(f"{label} {value:.0f} %")
     duration = sum(float(h.get("duration") or 0) for h in rows)
     spread = core.safe_float(worst.get("modelSpread")) or 0
+
+    when = ""
+    worst_start = core.parse_iso_utc(str(worst.get("start") or worst.get("sourceStart") or ""))
+    if worst_start is not None and options is not None:
+        when = f" kolem {core.format_local_time(worst_start, options)}"
+
     return (
         f"Meteorologické modely se během {duration:.1f} h výrazně rozcházejí; "
-        f"největší rozptyl je {spread:.0f} p. b. ({', '.join(bits)}). "
+        f"největší hodinový rozptyl je {spread:.0f} p. b.{when}. "
         "Proto je verdikt NEJISTÉ a před spuštěním je vhodné zkontrolovat aktuální satelit nebo kamery."
     )
 
@@ -97,10 +98,10 @@ def analyze_night_wrapped(core: Any, original: Any, night: dict[str, Any], forec
             result.update(
                 decision="uncertain",
                 label="NEJISTÉ",
-                reason=_generic_conflict_reason(core, result)
+                reason=_generic_conflict_reason(core, result, options)
                 or "Okno je dost dlouhé, ale jistota modelů nebo datové pokrytí není dostatečné.",
             )
-    generic = _generic_conflict_reason(core, result)
+    generic = _generic_conflict_reason(core, result, options)
     if generic and result.get("decision") == "uncertain":
         result["reason"] = generic
     result["reason"] = str(result.get("reason") or "").replace(
