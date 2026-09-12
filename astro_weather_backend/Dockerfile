@@ -29,6 +29,7 @@ COPY spatial_timeline_patch.py /app/spatial_timeline_patch.py
 COPY twilight_patch.py /app/twilight_patch.py
 COPY edge_consistency_patch.py /app/edge_consistency_patch.py
 COPY state_cache_patch.py /app/state_cache_patch.py
+COPY entity_watchdog_patch.py /app/entity_watchdog_patch.py
 COPY satellite_nowcast_patch.py /app/satellite_nowcast_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
