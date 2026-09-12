@@ -27,7 +27,11 @@ jobs:
           python -m py_compile astro_weather_backend/spatial_timeline_patch.py
           python -m py_compile astro_weather_backend/twilight_patch.py
           python -m py_compile astro_weather_backend/state_cache_patch.py
+          python -m py_compile astro_weather_backend/entity_watchdog_patch.py
           python -m py_compile astro_weather_backend/edge_consistency_patch.py
+          python -m py_compile astro_weather_backend/satellite_nowcast_patch.py
+          python -m py_compile astro_weather_backend/storage_protection_patch.py
+          python -m py_compile astro_weather_backend/satellite_card_map_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
         run: |
@@ -37,6 +41,8 @@ jobs:
           node --check astro_weather_backend/cards/astro-start-card-v26.js
           node --check astro_weather_backend/cards/astro-start-card-v27.js
           node --check astro_weather_backend/cards/astro-start-card-v28.js
+          node --check astro_weather_backend/cards/astro-start-card-v29.js
+          node --check astro_weather_backend/cards/astro-satellite-card.js
           node --check astro_weather_backend/cards/moon-forecast-card-v24.js
           node --check astro_weather_backend/cards/moon-forecast-card-v25.js
       - name: Stable 12.1 regression suite
@@ -55,9 +61,17 @@ jobs:
         run: python -m unittest -v tests/test_twilight_patch.py
       - name: State cache regression suite
         run: python -m unittest -v tests/test_state_cache_patch.py
+      - name: Entity watchdog regression suite
+        run: python -m unittest -v tests/test_entity_watchdog_patch.py
       - name: Edge consistency regression suite
         run: python -m unittest -v tests/test_edge_consistency_patch.py
+      - name: Satellite nowcast regression suite
+        run: python -m unittest -v tests/test_satellite_nowcast_patch.py
+      - name: Storage protection regression suite
+        run: python -m unittest -v tests/test_storage_protection_patch.py
+      - name: Satellite CLM map regression suite
+        run: python -m unittest -v tests/test_satellite_card_map_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.3.4 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.4.0 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
