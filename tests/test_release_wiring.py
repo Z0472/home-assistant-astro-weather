@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.4.12."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.4.13."""
 import json
 import sys
 import tempfile
@@ -49,13 +49,19 @@ class ReleaseWiringTests(unittest.TestCase):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.4.12"', config)
+        readme = (ROOT / "astro_weather_backend/README.md").read_text(encoding="utf-8")
+        docs = (ROOT / "astro_weather_backend/DOCS.md").read_text(encoding="utf-8")
+        self.assertIn('version: "12.4.13"', config)
+        self.assertIn("Plánování astrofotografie", config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("use_satellite: true", config)
         self.assertIn("satellite_radius_km: 30", config)
         self.assertIn("satellite_refresh_minutes: 10", config)
         self.assertIn("eumetsat_consumer_secret: password", config)
+        self.assertIn("API Key Management", readme)
+        self.assertIn("Consumer key", docs)
+        self.assertIn("Použijte skutečnou polohu", docs)
         self.assertIn("COPY entity_watchdog_patch.py", docker)
         self.assertIn("COPY satellite_nowcast_patch.py", docker)
         self.assertIn("COPY storage_protection_patch.py", docker)
@@ -71,7 +77,7 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("satellite_index_sampler_patch.install(core)", app)
         self.assertIn("satellite_ui_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
-        self.assertEqual(core.APP_VERSION, "12.4.12")
+        self.assertEqual(core.APP_VERSION, "12.4.13")
         self.assertEqual(core.ASTRO_START_CARD_VERSION, 35)
         self.assertEqual(satellite_nowcast_patch.SATELLITE_CARD_VERSION, 9)
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
@@ -118,7 +124,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("_irHistoryV9", satellite_v9)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.4.12")
+            self.assertEqual(manifest["backend_version"], "12.4.13")
             self.assertEqual(manifest["cards"][0]["version"], 35)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v35.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
