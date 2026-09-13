@@ -1,11 +1,9 @@
-"""Satellite UI refinements for Astro Weather Backend 12.4.9.
+"""Satellite/UI refinements for Astro Weather Backend 12.4.10.
 
-Separates the categorical CLM state directly over the observatory from the
-regional 17-sample cloud fraction used for short-term trend/nowcast. Model
-comparison is now spatially consistent: the current model consensus is compared
-with the centre CLM sample, while the 30 km sample fraction remains a regional
-context and nowcast metric. Main card v33 and satellite card v8 make this scope
-explicit.
+Keeps the 12.4.9 spatially-correct satellite comparison: current model
+consensus is compared with the centre CLM sample over the observatory, while
+the 30 km sample fraction remains regional context and nowcast. Main card v34
+adds a compact wide-screen detail layout without changing forecast logic.
 """
 from __future__ import annotations
 
@@ -18,8 +16,8 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.9"
-ASTRO_CARD_VERSION = 33
+RELEASE_VERSION = "12.4.10"
+ASTRO_CARD_VERSION = 34
 SATELLITE_CARD_VERSION = 8
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
@@ -100,7 +98,7 @@ def install(core: Any) -> None:
         core_arg, options, satellite, old_comparison
     )
 
-    # v33 imports v32 -> v31 -> v30. v8 imports v7 -> v6 -> v5 -> v4 -> v3.
+    # v34 imports v33 -> v32 -> v31 -> v30. v8 imports v7 -> v6 -> v5 -> v4 -> v3.
     # Install the full dependency chain so a clean Home Assistant install is
     # self-contained and never depends on old browser/cache files.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
@@ -114,6 +112,7 @@ def install(core: Any) -> None:
             target.startswith("astro-start-card-v31")
             or target.startswith("astro-start-card-v32")
             or target.startswith("astro-start-card-v33")
+            or target.startswith("astro-start-card-v34")
         ):
             continue
         installs.append((source, target))
@@ -123,6 +122,7 @@ def install(core: Any) -> None:
     installs.append(("astro-start-card-v31.js", "astro-start-card-v31.js"))
     installs.append(("astro-start-card-v32.js", "astro-start-card-v32.js"))
     installs.append(("astro-start-card-v33.js", "astro-start-card-v33.js"))
+    installs.append(("astro-start-card-v34.js", "astro-start-card-v34.js"))
 
     installs.append(("astro-satellite-card.js", "astro-satellite-card-v3.js"))
     installs.append(("astro-satellite-card-v4.js", "astro-satellite-card-v4.js"))
