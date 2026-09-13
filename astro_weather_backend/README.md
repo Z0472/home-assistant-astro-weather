@@ -1,33 +1,29 @@
 # Astro Weather Backend
 
-Home Assistant App/Add-on pro provozní rozhodování o astrofotografické noci.
+Home Assistant App/Add-on pro provozní rozhodování, zda má smysl danou noc spustit a chladit astrofotografickou techniku.
 
 Backend kombinuje:
 
-- MET Norway Locationforecast,
-- ČHMÚ ALADIN,
-- DWD ICON,
-- prostorovou analýzu oblačnosti,
+- **MET Norway Locationforecast**,
+- **ČHMÚ ALADIN CZ 1 km**,
+- **DWD ICON Seamless / Open-Meteo**,
+- prostorovou analýzu oblačnosti kolem observatoře,
 - interní výpočet astronomické noci a Měsíce,
-- CAMS/Open-Meteo AOD,
-- 7Timer seeing,
-- EUMETSAT MTG/FCI Cloud Mask a IR10.5.
+- **CAMS / Open-Meteo AOD 550**,
+- **7Timer ASTRO seeing**,
+- **EUMETSAT MTG/FCI Cloud Mask (CLM)** a IR10.5.
 
-Výsledkem je jeden hlavní verdikt:
+Výsledkem je jeden hlavní provozní verdikt:
 
 **SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
 
-> UI i dokumentace jsou zatím pouze česky. Projekt je primárně zaměřen na observatoře v České republice kvůli použití regionálního modelu ČHMÚ ALADIN.
+> **Jazyk a oblast použití**
+>
+> Uživatelské rozhraní a plná dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je ČHMÚ ALADIN CZ 1 km. Stručný anglický popis projektu je v hlavním [README](../README.md#english-summary).
 
-## Instalace
+## Co je nutné nastavit
 
-Repozitář pro Home Assistant:
-
-```text
-https://github.com/Z0472/home-assistant-astro-weather
-```
-
-Po instalaci nastav skutečnou polohu observatoře:
+Po instalaci nastavte skutečnou polohu observatoře:
 
 ```yaml
 latitude: 48.0000
@@ -36,36 +32,46 @@ altitude: 500
 timezone: Europe/Prague
 ```
 
-Potom aplikaci spusť a zkontroluj vytvoření entit:
+Souřadnice a nadmořská výška ovlivňují bodovou předpověď, prostorové vzorkování, astronomickou noc, Měsíc i satelitní CLM.
+
+Pro kvantitativní EUMETSAT MTG/FCI Cloud Mask vyplňte také:
+
+```yaml
+eumetsat_consumer_key: "VAS_CONSUMER_KEY"
+eumetsat_consumer_secret: "VAS_CONSUMER_SECRET"
+```
+
+EUMETSAT účet vytvoříte na:
+
+https://user.eumetsat.int/
+
+Po přihlášení najdete **Consumer key** a **Consumer secret** v API Key Management:
+
+https://api.eumetsat.int/api-key/
+
+Do aplikace se nevkládá krátkodobý access token; backend si jej z key + secret vytváří automaticky.
+
+## Hlavní entity
 
 ```text
 sensor.astro_weather_detail
 sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
+sensor.astro_satelit_oblacnost
+sensor.astro_model_satelit_shoda
 ```
-
-Pro kvantitativní EUMETSAT CLM doplň také consumer key a consumer secret.
-
-## Dokumentace
-
-Kompletní dokumentace je v kořeni repozitáře:
-
-- [Instalace](../INSTALACE.md)
-- [Konfigurace](../KONFIGURACE.md)
-- [Satelit EUMETSAT](../SATELLITE.md)
-- [Přehled projektu](../README.md)
 
 ## Dashboard
 
-Aplikace automaticky instaluje custom cards a udržuje stabilní Lovelace resource:
+Aplikace automaticky instaluje aktuální custom cards a udržuje jediný stabilní Lovelace resource:
 
 ```text
 /local/astro-weather-cards-loader.js
 ```
 
-Do Resources nepřidávej jednotlivé verzované JavaScript soubory.
+Jednotlivé verzované JavaScript soubory karet do Resources ručně nepřidávejte.
 
-Hlavní karta:
+### Hlavní karta
 
 ```yaml
 type: custom:astro-start-card
@@ -75,7 +81,7 @@ moon_entity: sensor.mesic_foceni_predpoved
 days: 3
 ```
 
-Satelitní karta:
+### Satelitní karta
 
 ```yaml
 type: custom:astro-satellite-card
@@ -85,7 +91,7 @@ show_clm_map: true
 show_image: true
 ```
 
-Měsíční karta:
+### Měsíční výhled
 
 ```yaml
 type: custom:moon-forecast-card
@@ -95,4 +101,11 @@ decision_entity: sensor.astro_vhodnost_foceni
 days: 45
 ```
 
-Pokud po aktualizaci prohlížeč drží starou verzi custom card, proveď jednou `Ctrl+F5`.
+## Kompletní dokumentace
+
+- [Instalace krok za krokem](../INSTALACE.md)
+- [Přehled všech parametrů](../KONFIGURACE.md)
+- [EUMETSAT MTG/FCI a satelitní vrstva](../SATELLITE.md)
+- [Přehled projektu](../README.md)
+
+Po aktualizaci použijte jednou `Ctrl+F5`, pokud prohlížeč stále zobrazuje starou verzi custom card.
