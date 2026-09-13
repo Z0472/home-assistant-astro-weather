@@ -1,9 +1,9 @@
-"""Satellite/UI refinements for Astro Weather Backend 12.4.12.
+"""Satellite/UI refinements for Astro Weather Backend 12.4.13.
 
 Keeps the spatially-correct satellite comparison from 12.4.9, the compact main
-card from 12.4.10, and the EUMETView IR10.5 history player from 12.4.11.
-Main card v35 removes the duplicate selected-night date from the expanded
-section and places the decision reason beside the verdict on wide screens.
+card from 12.4.10, the EUMETView IR10.5 history player from 12.4.11, and the
+compact decision detail from 12.4.12. Release 12.4.13 refreshes Home Assistant
+app metadata/documentation; card logic and card versions are unchanged.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.12"
+RELEASE_VERSION = "12.4.13"
 ASTRO_CARD_VERSION = 35
 SATELLITE_CARD_VERSION = 9
 VISUAL_RADIUS_KM = 150.0
