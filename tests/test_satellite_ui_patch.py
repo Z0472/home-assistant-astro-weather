@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.11 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.12 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -121,6 +121,15 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("@media (max-width:760px)", source)
         self.assertIn("_compactDetailLayoutV34", source)
 
+    def test_main_card_v35_compacts_reason_and_removes_duplicate_date(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-start-card-v35.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-start-card-v34.js";', source)
+        self.assertIn("decision-reason-row-v35", source)
+        self.assertIn("detail-title", source)
+        self.assertIn("detail-sub", source)
+        self.assertIn("grid-template-columns:minmax(0,1fr) auto", source)
+        self.assertIn("_compactDecisionReasonV35", source)
+
     def test_satellite_card_v5_separates_live_clm_age_and_ir_refresh(self):
         v5 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v5.js").read_text(encoding="utf-8")
         self.assertIn("CLM ${this._time(asOf)} · před ${age} min", v5)
@@ -160,8 +169,8 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertNotIn("/data/cache", source)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.11")
-        self.assertEqual(ui.ASTRO_CARD_VERSION, 34)
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.12")
+        self.assertEqual(ui.ASTRO_CARD_VERSION, 35)
         self.assertEqual(ui.SATELLITE_CARD_VERSION, 9)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
