@@ -1,3 +1,17 @@
+# Home Assistant Astro Weather
+
+![Tests](https://github.com/Z0472/home-assistant-astro-weather/actions/workflows/tests.yml/badge.svg)
+
+Astro Weather je Home Assistant App/Add-on určený pro rozhodování, zda má smysl spustit astrofotografickou techniku. Kombinuje několik nezávislých meteorologických modelů, astronomickou noc, Měsíc, kvalitu oblohy a aktuální satelitní data do jednoho provozního výsledku:
+
+**SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
+
+Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nejde o přehled změn proti starším verzím.
+
+> **Jazyk a oblast použití**
+>
+> Uživatelské rozhraní a plná dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu. Stručný anglický popis projektu je uveden níže.
+>
 ## English summary
 
 **Astro Weather** is a Home Assistant App/Add-on designed to answer one practical astrophotography question: **is it worth starting and cooling the imaging equipment tonight?**
@@ -22,19 +36,6 @@ The backend evaluates model agreement, cloud development during astronomical dar
 
 The user interface and full installation/configuration documentation are currently available **in Czech only**. This English section is intentionally limited to a project overview.
 
-# Home Assistant Astro Weather
-
-![Tests](https://github.com/Z0472/home-assistant-astro-weather/actions/workflows/tests.yml/badge.svg)
-
-Astro Weather je Home Assistant App/Add-on určený pro rozhodování, zda má smysl spustit astrofotografickou techniku. Kombinuje několik nezávislých meteorologických modelů, astronomickou noc, Měsíc, kvalitu oblohy a aktuální satelitní data do jednoho provozního výsledku:
-
-**SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
-
-Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nejde o přehled změn proti starším verzím.
-
-> **Jazyk a oblast použití**
->
-> Uživatelské rozhraní a plná dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu. Stručný anglický popis projektu je uveden níže.
 
 ## Ukázka dashboardu
 
