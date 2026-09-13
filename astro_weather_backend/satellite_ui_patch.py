@@ -1,10 +1,9 @@
-"""Satellite/UI refinements for Astro Weather Backend 12.4.11.
+"""Satellite/UI refinements for Astro Weather Backend 12.4.12.
 
 Keeps the spatially-correct satellite comparison from 12.4.9, the compact main
-card from 12.4.10, and adds an EUMETView IR10.5 history player in satellite
-card v9. Historical imagery is requested directly from the WMS time dimension
-and is cached only by the browser; no JPEG history is written to Home Assistant
-storage.
+card from 12.4.10, and the EUMETView IR10.5 history player from 12.4.11.
+Main card v35 removes the duplicate selected-night date from the expanded
+section and places the decision reason beside the verdict on wide screens.
 """
 from __future__ import annotations
 
@@ -17,8 +16,8 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.11"
-ASTRO_CARD_VERSION = 34
+RELEASE_VERSION = "12.4.12"
+ASTRO_CARD_VERSION = 35
 SATELLITE_CARD_VERSION = 9
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
@@ -105,9 +104,9 @@ def install(core: Any) -> None:
         core_arg, options, satellite, old_comparison
     )
 
-    # v34 imports v33 -> v32 -> v31 -> v30. v9 imports v8 -> v7 -> v6 -> v5
-    # -> v4 -> v3. Install the full dependency chain so clean Home Assistant
-    # installs are self-contained and independent of browser cache leftovers.
+    # v35 imports v34 -> v33 -> v32 -> v31 -> v30. v9 imports v8 -> v7 -> v6
+    # -> v5 -> v4 -> v3. Install the full dependency chain so clean Home
+    # Assistant installs are self-contained and independent of browser cache.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -120,6 +119,7 @@ def install(core: Any) -> None:
             or target.startswith("astro-start-card-v32")
             or target.startswith("astro-start-card-v33")
             or target.startswith("astro-start-card-v34")
+            or target.startswith("astro-start-card-v35")
         ):
             continue
         installs.append((source, target))
@@ -130,6 +130,7 @@ def install(core: Any) -> None:
     installs.append(("astro-start-card-v32.js", "astro-start-card-v32.js"))
     installs.append(("astro-start-card-v33.js", "astro-start-card-v33.js"))
     installs.append(("astro-start-card-v34.js", "astro-start-card-v34.js"))
+    installs.append(("astro-start-card-v35.js", "astro-start-card-v35.js"))
 
     installs.append(("astro-satellite-card.js", "astro-satellite-card-v3.js"))
     installs.append(("astro-satellite-card-v4.js", "astro-satellite-card-v4.js"))
