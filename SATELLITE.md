@@ -1,94 +1,217 @@
-# EUMETSAT MTG/FCI satellite nowcast (12.4.0)
+# EUMETSAT MTG/FCI satelitní vrstva
 
-The satellite layer is deliberately separate from the long-range model decision. It describes **observed cloud reality now** and a short extrapolative nowcast; it does not directly change `SPUSTIT / NEJISTÉ / NESPOUŠTĚT` in 12.4.0.
+Astro Weather používá EUMETSAT MTG/FCI dvěma odlišnými způsoby:
 
-## Data source
+1. **FCI Cloud Mask (CLM)** pro kvantitativní informaci jasno/mrak.
+2. **IR10.5 WMS obraz** pro vizuální kontrolu širšího okolí a historický timelapse.
 
-Quantitative cloud detection uses the EUMETSAT MTG/FCI Level-2 Cloud Mask (CLM), GRIB-2 variant (`EO:EUM:DAT:0800`). The product is generated every 10 minutes at 2 km nadir resolution. The GRIB cloud-mask categories are interpreted as:
+Satelitní vrstva je úmyslně oddělená od dlouhodobého modelového rozhodnutí. Ukazuje skutečnou pozorovanou situaci a krátkodobý trend, ale sama přímo nepřepisuje finální `SPUSTIT / NEJISTÉ / NESPOUŠTĚT`.
 
-- 0 — clear water
-- 1 — clear land
-- 2 — cloud
-- 3 — no data
+## CLM zdroj
 
-The backend reuses the existing `ecCodes/grib_get` dependency and samples 17 positions: the observatory plus eight compass directions at R/2 and eight at R.
+Kvantitativní oblačnost používá EUMETSAT MTG/FCI Level-2 Cloud Mask, GRIB-2 kolekci:
 
-EUMETSAT catalogue discovery is anonymous, but Data Store downloads require a registered EUMETSAT account and temporary access token generated from a consumer key and consumer secret. The backend generates the temporary token automatically; the long-lived key/secret are configured only in Home Assistant App options.
+```text
+EO:EUM:DAT:0800
+```
 
-When no credentials are present the integration is fail-open: existing weather/model decisions continue unchanged, quantitative satellite entities are `unavailable`, and the card offers the public EUMETView MTG IR10.5 visualisation instead. The WMS image is intentionally **not** converted into a fake cloud percentage because it is a styled, non-queryable image rather than geophysical pixel data.
+Backend pravidelně hledá poslední produkty a vzorkuje je v okolí observatoře.
 
-## SD-card protection
+Používá se 17 bodů:
 
-Astro Weather is expected to run continuously on small Home Assistant hardware, including Raspberry Pi systems booting from an SD card. Large transient weather files therefore must not create unnecessary flash write amplification.
+- `C` - observatoř,
+- 8 směrů ve vzdálenosti R/2,
+- 8 směrů ve vzdálenosti R.
 
-From 12.4.0:
+Výchozí R je 30 km.
 
-- the downloaded EUMETSAT SIP/ZIP stays only in Python memory;
-- the extracted MTG/FCI GRIB2 is written only to `/dev/shm` (container RAM tmpfs), sampled, and immediately deleted;
-- satellite and ALADIN large-GRIB processing share one lock so only one large scratch GRIB is present in RAM at a time;
-- ALADIN keeps only its **compressed current-run cache** under `/data/cache`; its temporary decompressed `.grb` is created in `/dev/shm` and removed immediately;
-- if `/dev/shm` is unavailable or too small, the backend fails that data source open rather than silently falling back to a large temporary write on the SD card;
-- the satellite sample cache remains only a small JSON containing at most seven recent sampled frames, not full satellite images.
+## Co znamenají údaje na satelitní kartě
 
-A real operational CLM test on 2026-09-12 returned a roughly 3.3 MB compressed SIP with a roughly 22.3 MB GRIB2 payload, so this change avoids repeated multi-megabyte transient writes every ten minutes.
+### Observatoř: jasno / mrak
 
-## Home Assistant App options
+Toto je **jediný středový CLM vzorek přímo nad zadanou polohou observatoře**.
+
+Je to nejbližší odpověď na otázku „co satelit vidí právě nad dalekohledem“.
+
+### Okolí 30 km: X % oblačných CLM vzorků
+
+To není procento oblačnosti přímo nad observatoří.
+
+Je to podíl oblačných kategorií z platných bodů v 17bodovém vzorku okolí. Například 9 oblačných bodů ze 17 znamená přibližně 53 % regionálního vzorku.
+
+Tato veličina je vhodná pro sledování přibližování nebo ústupu větší oblačné oblasti.
+
+### TEĎ / +1 h / +2 h / +3 h
+
+- `TEĎ` = skutečný poslední regionální CLM podíl.
+- `+1 h`, `+2 h`, `+3 h` = krátký **extrapolační nowcast** z posledního trendu.
+
+Budoucí dlaždice nejsou budoucí satelitní měření ani meteorologický model. Jsou to pouze projekce pokračování pozorovaného trendu.
+
+## Porovnání modelů se satelitem
+
+`sensor.astro_model_satelit_shoda` porovnává aktuální dostupný konsensus MET / ALADIN / ICON se **středovým CLM vzorkem nad observatoří**.
+
+Regionální 17bodový podíl se do tohoto porovnání nezapočítává, protože modelová hodnota je také vztažená k lokalitě observatoře.
+
+Tím se nerozmíchávají dva různé prostorové významy:
+
+- lokální model ↔ lokální CLM,
+- regionální CLM podíl ↔ regionální trend/nowcast.
+
+## Směr hrany a ETA
+
+Směr blížící se nebo ustupující hrany se neukazuje z jediného snímku.
+
+Backend vyžaduje konzistentní chování několika po sobě jdoucích CLM rámců. Teprve při stabilním směru a měřitelném přibližování se může zobrazit orientační ETA.
+
+Je to záměrně konzervativní, aby karta nereagovala přehnaně na jeden chybný nebo okrajový vzorek.
+
+## IR10.5 obraz
+
+Karta zobrazuje veřejný EUMETView WMS výřez IR10.5 kolem observatoře.
+
+Výchozí vizuální výřez má přibližně:
+
+```text
+±150 km od observatoře
+```
+
+Obraz je zobrazován ve větším rozlišení karty, než je nativní fyzikální rozlišení družicového kanálu. Jemnější vykreslení tedy neznamená, že vzniká nová informace pod nativním rozlišením produktu.
+
+Na živém obrazu jsou překresleny:
+
+- CLM vzorky,
+- kruhy R/2 a R,
+- značka observatoře.
+
+Barevná legenda karty:
+
+- modrá = jasno,
+- šedá = mrak,
+- žlutý terč = observatoř.
+
+## Časy na kartě
+
+Karta záměrně odděluje dva různé časy:
+
+### `CLM HH:mm · před N min`
+
+- `HH:mm` je čas posledního CLM měření,
+- `před N min` se přepočítává živě v prohlížeči,
+- není potřeba refresh celé stránky.
+
+### `IR obnoveno HH:mm`
+
+Toto je čas, kdy se do karty obnovil WMS obraz. Není to tvrzení, že samotné satelitní měření vzniklo přesně v tuto minutu.
+
+## IR historie a timelapse
+
+Satelitní karta umí přehrát přibližně poslední tři hodiny IR historie.
+
+Výchozí nastavení:
+
+```text
+20 rámců
+10 minut mezi rámci
+```
+
+To odpovídá přibližně 3 hodinám a 10 minutám historie.
+
+Historické snímky se **neukládají na disk Home Assistant**. Karta používá WMS `time=` a jednotlivé obrazy načítá až webový prohlížeč.
+
+Výhody:
+
+- nevzniká archiv JPEGů na SD/SSD,
+- backend nemusí vyrábět video,
+- zatížení Raspberry Pi / Home Assistant serveru je minimální,
+- uživatel může sliderem přejít na libovolný historický rámec.
+
+Během historického přehrávání jsou aktuální modré/šedé CLM body skryté, protože patří pouze k současnému CLM času a nad starším IR snímkem by byly časově zavádějící.
+
+Po návratu na **Živě** se znovu zobrazí aktuální IR obraz i aktuální CLM body.
+
+## EUMETSAT API credentials
+
+Vyhledání dostupných produktů je možné bez přihlášení, ale stažení kvantitativního CLM produktu vyžaduje EUMETSAT API consumer key a secret.
+
+V Home Assistant konfiguraci:
 
 ```yaml
 use_satellite: true
 satellite_radius_km: 30
 satellite_refresh_minutes: 10
-satellite_entity: sensor.astro_satelit_oblacnost
-satellite_comparison_entity: sensor.astro_model_satelit_shoda
-eumetsat_consumer_key: "YOUR_KEY"
-eumetsat_consumer_secret: "YOUR_SECRET"
+eumetsat_consumer_key: "TVUJ_CONSUMER_KEY"
+eumetsat_consumer_secret: "TVUJ_CONSUMER_SECRET"
 ```
 
-The secret is declared as a Home Assistant `password` option and is never published in sensor attributes or logs.
+Backend z key/secret získává krátkodobý access token automaticky.
 
-## Published entities
+Pokud credentials chybí nebo EUMETSAT není dostupný:
 
-- `sensor.astro_satelit_oblacnost` — observed local neighbourhood cloud fraction from the latest CLM frame. Attributes contain acquisition time, age, trend, 0–3 h nowcast, stable edge/ETA, and the exact 17 CLM sample values shown by the card.
-- `sensor.astro_model_satelit_shoda` — current agreement percentage between the complete available MET + ALADIN + ICON cloud consensus and satellite reality.
-- `sensor.astro_met_satelit_chyba` — MET absolute error in percentage points against the same satellite observation.
-- `sensor.astro_aladin_satelit_chyba` — ALADIN absolute error.
-- `sensor.astro_icon_satelit_chyba` — ICON absolute error.
+- hlavní modelové rozhodování pokračuje,
+- kvantitativní CLM entita je `unavailable`,
+- satelitní výpadek nesmí shodit celý backend.
 
-The three error sensors are intended for Home Assistant Recorder/statistics so model performance can be evaluated over many nights instead of judged from individual examples.
+## Publikované entity
 
-## Direction and ETA
+```text
+sensor.astro_satelit_oblacnost
+sensor.astro_model_satelit_shoda
+sensor.astro_met_satelit_chyba
+sensor.astro_aladin_satelit_chyba
+sensor.astro_icon_satelit_chyba
+```
 
-Direction is intentionally conservative. It is shown only when **three consecutive satellite frames** contain the same type of clear/cloud edge with compatible bearings. ETA is added only when that consistent edge is also measurably approaching the observatory. This mirrors the strict consistency principle used by the 12.3.4 model-edge logic.
+### `sensor.astro_satelit_oblacnost`
 
-## Short nowcast
+Obsahuje mimo jiné:
 
-The separate card displays `TEĎ`, `+1 h`, `+2 h`, `+3 h`. `TEĎ` is the latest observation; future values are an explicitly labelled short extrapolative nowcast derived from several recent CLM frames. They are not presented as future satellite measurements.
+- čas CLM,
+- středový stav nad observatoří,
+- regionální podíl oblačných vzorků,
+- 17 CLM bodů,
+- trend,
+- krátký nowcast,
+- případnou stabilní hranu a ETA,
+- URL vizuálního IR výřezu.
 
-## CLM map on the card
+### `sensor.astro_model_satelit_shoda`
 
-Satellite card v2 displays a lightweight local CLM map by default. It does **not** decode or retain another large image. The map renders the exact 17 categorical samples already used by the backend:
+Obsahuje aktuální porovnání modelového konsensu se středovým CLM stavem nad observatoří.
 
-- centre = observatory;
-- inner ring = eight directions at R/2;
-- outer ring = eight directions at R;
-- green = clear;
-- light cloud marker = cloud;
-- grey = no data.
+### Chybové senzory jednotlivých modelů
 
-This makes the visualisation directly auditable while adding virtually no CPU, RAM, or SD-card load. It is deliberately labelled as a sample map rather than an interpolated full-resolution image.
+MET / ALADIN / ICON error senzory jsou určené hlavně pro dlouhodobé Home Assistant Recorder/statistiky. Smyslem je hodnotit modely za mnoho situací, ne podle jednoho náhodného večera.
 
-## Dashboard card
+## Ochrana SD/SSD a RAM
 
-After the App has installed/reloaded the Astro card resources, add:
+Astro Weather je navržen i pro nepřetržitý provoz na menších Home Assistant zařízeních.
+
+Velké dočasné soubory se proto zpracovávají takto:
+
+- stažený EUMETSAT balíček se drží v paměti,
+- velký rozbalený CLM GRIB se zapisuje pouze do `/dev/shm`,
+- po vzorkování se okamžitě odstraní,
+- ALADIN používá stejný princip pro dočasný rozbalený GRIB,
+- velké GRIB operace jsou vzájemně koordinované,
+- CLM se vzorkuje přímým indexem místo paměťově náročného plošného vyhledávání,
+- na disk se ukládá pouze malý JSON s několika posledními CLM vzorky potřebnými pro trend.
+
+Pokud není bezpečný RAM scratch k dispozici, satelitní zdroj má raději selhat jako `unavailable`, než začít pravidelně zapisovat velké dočasné soubory na SD kartu.
+
+IR timelapse je čistě browser-side a na Home Assistant disk nezapisuje historické obrazy.
+
+## Dashboard YAML
 
 ```yaml
 type: custom:astro-satellite-card
 satellite_entity: sensor.astro_satelit_oblacnost
 comparison_entity: sensor.astro_model_satelit_shoda
 show_clm_map: true
-show_image: false
+show_image: true
 ```
 
-`show_clm_map: true` is the default and shows the exact CLM samples used by the calculation. Set `show_image: true` only when the public EUMETView IR panel is also desired inside the card.
+`show_image: true` je potřeba pro IR obraz a jeho historii.
 
-The main `astro-start-card` remains compact: it only shows the current model-consensus versus satellite agreement. Detailed satellite diagnostics stay on the dedicated card and in entity attributes.
+Podrobná instalace je v [INSTALACE.md](INSTALACE.md).
