@@ -1,3 +1,27 @@
+## English summary
+
+**Astro Weather** is a Home Assistant App/Add-on designed to answer one practical astrophotography question: **is it worth starting and cooling the imaging equipment tonight?**
+
+It combines several independent weather models with astronomical darkness, Moon interference, sky-quality indicators and current satellite observations into one operational result:
+
+**START / UNCERTAIN / DO NOT START**
+
+The project currently focuses primarily on the **Czech Republic**, because one of its core forecast sources is the regional **CHMI ALADIN CZ 1 km** model. MET Norway, DWD ICON and EUMETSAT have wider coverage, but operation outside the ALADIN area is not currently the primary supported scenario.
+
+The main data sources are:
+
+- MET Norway Locationforecast,
+- CHMI ALADIN CZ 1 km,
+- DWD ICON Seamless via Open-Meteo,
+- internal astronomical-night and Moon calculations,
+- CAMS / Open-Meteo AOD 550,
+- 7Timer ASTRO seeing,
+- EUMETSAT MTG/FCI Cloud Mask and IR10.5 imagery.
+
+The backend evaluates model agreement, cloud development during astronomical darkness, precipitation, fog, wind, Moon interference, aerosols, seeing and the spatial stability of clouds around the observatory. The satellite layer provides observed current conditions, model-vs-satellite comparison, a short regional nowcast and an IR history player.
+
+The user interface and full installation/configuration documentation are currently available **in Czech only**. This English section is intentionally limited to a project overview.
+
 # Home Assistant Astro Weather
 
 ![Tests](https://github.com/Z0472/home-assistant-astro-weather/actions/workflows/tests.yml/badge.svg)
@@ -204,27 +228,3 @@ aarch64
 Projekt je aktivně vyvíjen pro praktické řízení amatérské observatoře. Výstup je pomůcka pro provozní rozhodnutí, nikoliv bezpečnostní meteorologický systém. Pro ochranu techniky je vhodné zachovat samostatná hardwarová a Home Assistant bezpečnostní pravidla pro déšť, vítr, střechu a další kritické stavy.
 
 ---
-
-## English summary
-
-**Astro Weather** is a Home Assistant App/Add-on designed to answer one practical astrophotography question: **is it worth starting and cooling the imaging equipment tonight?**
-
-It combines several independent weather models with astronomical darkness, Moon interference, sky-quality indicators and current satellite observations into one operational result:
-
-**START / UNCERTAIN / DO NOT START**
-
-The project currently focuses primarily on the **Czech Republic**, because one of its core forecast sources is the regional **CHMI ALADIN CZ 1 km** model. MET Norway, DWD ICON and EUMETSAT have wider coverage, but operation outside the ALADIN area is not currently the primary supported scenario.
-
-The main data sources are:
-
-- MET Norway Locationforecast,
-- CHMI ALADIN CZ 1 km,
-- DWD ICON Seamless via Open-Meteo,
-- internal astronomical-night and Moon calculations,
-- CAMS / Open-Meteo AOD 550,
-- 7Timer ASTRO seeing,
-- EUMETSAT MTG/FCI Cloud Mask and IR10.5 imagery.
-
-The backend evaluates model agreement, cloud development during astronomical darkness, precipitation, fog, wind, Moon interference, aerosols, seeing and the spatial stability of clouds around the observatory. The satellite layer provides observed current conditions, model-vs-satellite comparison, a short regional nowcast and an IR history player.
-
-The user interface and full installation/configuration documentation are currently available **in Czech only**. This English section is intentionally limited to a project overview.
