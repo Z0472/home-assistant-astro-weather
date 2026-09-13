@@ -12,6 +12,12 @@ Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nej
 >
 > Uživatelské rozhraní a plná dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu. Stručný anglický popis projektu je uveden níže.
 
+## Ukázka dashboardu
+
+![Astro Weather dashboard v Home Assistantu](docs/images/dashboard-overview.jpg)
+
+*Ukázka reálného dashboardu Home Assistantu s hlavním rozhodnutím, detailním průběhem noci, Měsícem a satelitní vrstvou. Konkrétní hodnoty na snímku jsou pouze ilustrativní a mění se podle času a lokality.*
+
 ## Dokumentace
 
 - [INSTALACE.md](INSTALACE.md) – čistá instalace do Home Assistantu, první spuštění a EUMETSAT registrace.
