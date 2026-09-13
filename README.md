@@ -39,7 +39,7 @@ The user interface and full installation/configuration documentation are current
 
 ## Ukázka dashboardu
 
-![Astro Weather dashboard v Home Assistantu](docs/images/dashboard-overview.jpg)
+![Astro Weather dashboard v Home Assistantu](docs/images/dashboard-overview-v2.jpg)
 
 *Ukázka reálného dashboardu Home Assistantu s hlavním rozhodnutím, detailním průběhem noci, Měsícem a satelitní vrstvou. Konkrétní hodnoty na snímku jsou pouze ilustrativní a mění se podle času a lokality.*
 
