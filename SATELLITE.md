@@ -30,15 +30,15 @@ Data Store lze procházet bez registrace, ale stahovací API vyžaduje autentiza
 
 ### 1. EUMETSAT účet
 
-Zaregistruj se nebo přihlas:
+Zaregistrujte se nebo se přihlaste:
 
 https://user.eumetsat.int/
 
-Pokud účet nemáš, použij **Register – Create new account**.
+Pokud účet nemáte, použijte **Register – Create new account**.
 
 ### 2. API Key Management
 
-Po přihlášení otevři:
+Po přihlášení otevřete:
 
 https://api.eumetsat.int/api-key/
 
@@ -47,14 +47,14 @@ Na stránce **API Key Management** je sekce **User Credentials**, kde jsou:
 - Consumer key
 - Consumer secret
 
-Hodnoty jsou standardně skryté; zobraz je a zkopíruj do konfigurace Astro Weather.
+Hodnoty jsou standardně skryté; zobrazte je a zkopírujte do konfigurace Astro Weather.
 
 ```yaml
-eumetsat_consumer_key: "TVUJ_CONSUMER_KEY"
-eumetsat_consumer_secret: "TVUJ_CONSUMER_SECRET"
+eumetsat_consumer_key: "VAS_CONSUMER_KEY"
+eumetsat_consumer_secret: "VAS_CONSUMER_SECRET"
 ```
 
-Do konfigurace nevkládej ručně access token. Backend z key + secret automaticky získá krátkodobý token a podle potřeby jej obnovuje.
+Do konfigurace nevkládejte ručně access token. Backend z key + secret automaticky získá krátkodobý token a podle potřeby jej obnovuje.
 
 Oficiální EUMETSAT dokumentace:
 
@@ -62,7 +62,7 @@ Oficiální EUMETSAT dokumentace:
 - https://user.eumetsat.int/resources/user-guides/introductory-data-store-user-guide
 - https://user.eumetsat.int/resources/user-guides/mtg-data-access-guide
 
-Některé EUMETSAT kolekce mohou vyžadovat odpovídající datovou licenci. Pokud API vrací `401` nebo `403`, zkontroluj účet, API credentials a datová oprávnění v User Portal.
+Některé EUMETSAT kolekce mohou vyžadovat odpovídající datovou licenci. Pokud API vrací `401` nebo `403`, zkontrolujte účet, API credentials a datová oprávnění v User Portal.
 
 ## Konfigurace satelitu
 
@@ -74,8 +74,8 @@ satellite_radius_km: 30
 satellite_refresh_minutes: 10
 satellite_entity: sensor.astro_satelit_oblacnost
 satellite_comparison_entity: sensor.astro_model_satelit_shoda
-eumetsat_consumer_key: "TVUJ_KEY"
-eumetsat_consumer_secret: "TVUJ_SECRET"
+eumetsat_consumer_key: "VAS_KEY"
+eumetsat_consumer_secret: "VAS_SECRET"
 ```
 
 `satellite_radius_km` může být 10–50 km. Výchozích 30 km odpovídá prostorovému okolí používanému na kartě.
@@ -104,14 +104,14 @@ To je lokální odpověď na otázku: „Co detekuje CLM právě nad observatoř
 
 Regionální procento je podíl oblačných bodů ze všech dostupných vzorků v okolí.
 
-Například `53 %` neznamená, že je nad observatoří 53 % oblačnosti. Může být:
+Například `53 %` neznamená, že je nad observatoří 53 % oblačnosti. Může nastat například tento stav:
 
 ```text
 Observatoř: jasno
 Okolí 30 km: 53 % oblačných CLM vzorků
 ```
 
-To je správný stav, pokud je středový bod jasný, ale v okolí už je výrazná oblačnost.
+To je správný výsledek, pokud je středový bod jasný, ale v okolí už je výrazná oblačnost.
 
 ## Porovnání modelů se satelitem
 
@@ -125,7 +125,7 @@ Na kartě tak může být například:
 Aktuálně v čase CLM: 100 % shoda · modelový konsensus 100 % · observatoř mrak
 ```
 
-nebo naopak nízká shoda, pokud modely tvrdí zataženo a CLM střed je jasný.
+nebo naopak nízká shoda, pokud modely předpovídají zataženo a CLM střed je jasný.
 
 ## Krátkodobý nowcast
 
