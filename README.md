@@ -32,7 +32,7 @@ The main data sources are:
 - 7Timer ASTRO seeing,
 - EUMETSAT MTG/FCI Cloud Mask and IR10.5 imagery.
 
-The backend evaluates model agreement, cloud development during astronomical darkness, precipitation, fog, wind, Moon interference, aerosols, seeing and the spatial stability of clouds around the observatory. The satellite layer provides observed current conditions, model-vs-satellite comparison, a short regional nowcast and an IR history player.
+The backend evaluates model agreement, cloud development during astronomical darkness, precipitation, fog, wind, Moon interference, aerosols, seeing and the spatial stability of clouds around the observatory. The satellite layer provides observed current conditions, model-vs-satellite comparison, a short regional nowcast and an interactive IR10.5 timelapse/history player covering roughly the last three hours.
 
 The user interface and full installation/configuration documentation are currently available **in Czech only**. This English section is intentionally limited to a project overview.
 
@@ -42,6 +42,10 @@ The user interface and full installation/configuration documentation are current
 ![Astro Weather dashboard v Home Assistantu](docs/images/dashboard-overview-v2.jpg)
 
 *Ukázka reálného dashboardu Home Assistantu s hlavním rozhodnutím, detailním průběhem noci, Měsícem a satelitní vrstvou. Konkrétní hodnoty na snímku jsou pouze ilustrativní a mění se podle času a lokality.*
+
+### Satelitní IR timelapse
+
+Satelitní karta obsahuje také **IR10.5 timelapse** posledních přibližně **3 hodin 10 minut**. Přehrávač načítá **20 historických snímků po 10 minutách** přímo z EUMETView WMS a nabízí **play/pause, posuvník a návrat na LIVE**. Historické snímky se nearchivují na disk Home Assistantu; načítají se přímo z WMS a využívají cache prohlížeče. Při přehrávání historie se skryjí aktuální CLM body, aby se nemíchal historický IR snímek s aktuální oblačnou maskou.
 
 ## Dokumentace
 
