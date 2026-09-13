@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.4.11."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.4.12."""
 import json
 import sys
 import tempfile
@@ -49,7 +49,7 @@ class ReleaseWiringTests(unittest.TestCase):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
         docker = (ROOT / "astro_weather_backend/Dockerfile").read_text(encoding="utf-8")
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
-        self.assertIn('version: "12.4.11"', config)
+        self.assertIn('version: "12.4.12"', config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
         self.assertIn("use_satellite: true", config)
@@ -71,8 +71,8 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("satellite_index_sampler_patch.install(core)", app)
         self.assertIn("satellite_ui_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
-        self.assertEqual(core.APP_VERSION, "12.4.11")
-        self.assertEqual(core.ASTRO_START_CARD_VERSION, 34)
+        self.assertEqual(core.APP_VERSION, "12.4.12")
+        self.assertEqual(core.ASTRO_START_CARD_VERSION, 35)
         self.assertEqual(satellite_nowcast_patch.SATELLITE_CARD_VERSION, 9)
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_CARD_MAP_PATCH_INSTALLED", False))
@@ -80,7 +80,7 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertTrue(getattr(core, "_SATELLITE_INDEX_SAMPLER_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_UI_PATCH_INSTALLED", False))
 
-    def test_v34_and_satellite_card_v9_install_is_self_contained(self):
+    def test_v35_and_satellite_card_v9_install_is_self_contained(self):
         source = ROOT / "astro_weather_backend/cards"
         with tempfile.TemporaryDirectory() as config_dir:
             target = Path(config_dir) / "www"
@@ -97,7 +97,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertTrue(ok)
             for name in (
                 "astro-start-card-v30.js", "astro-start-card-v31.js", "astro-start-card-v32.js",
-                "astro-start-card-v33.js", "astro-start-card-v34.js",
+                "astro-start-card-v33.js", "astro-start-card-v34.js", "astro-start-card-v35.js",
                 "astro-satellite-card-v3.js", "astro-satellite-card-v4.js",
                 "astro-satellite-card-v5.js", "astro-satellite-card-v6.js",
                 "astro-satellite-card-v7.js", "astro-satellite-card-v8.js", "astro-satellite-card-v9.js",
@@ -105,12 +105,12 @@ class ReleaseWiringTests(unittest.TestCase):
             ):
                 self.assertTrue(target.joinpath(name).exists(), name)
 
-            astro_v34 = target.joinpath("astro-start-card-v34.js").read_text(encoding="utf-8")
+            astro_v35 = target.joinpath("astro-start-card-v35.js").read_text(encoding="utf-8")
             satellite_v9 = target.joinpath("astro-satellite-card-v9.js").read_text(encoding="utf-8")
-            self.assertIn('import "/local/astro-start-card-v33.js";', astro_v34)
-            self.assertIn("spatial-compact-row-v34", astro_v34)
-            self.assertIn(".moon-panel", astro_v34)
-            self.assertIn("grid-template-columns", astro_v34)
+            self.assertIn('import "/local/astro-start-card-v34.js";', astro_v35)
+            self.assertIn("decision-reason-row-v35", astro_v35)
+            self.assertIn("detail-title", astro_v35)
+            self.assertIn("_compactDecisionReasonV35", astro_v35)
             self.assertIn('import "/local/astro-satellite-card-v8.js";', satellite_v9)
             self.assertIn("history-slider-v9", satellite_v9)
             self.assertIn('searchParams.set("time"', satellite_v9)
@@ -118,9 +118,9 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("_irHistoryV9", satellite_v9)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.4.11")
-            self.assertEqual(manifest["cards"][0]["version"], 34)
-            self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v34.js")
+            self.assertEqual(manifest["backend_version"], "12.4.12")
+            self.assertEqual(manifest["cards"][0]["version"], 35)
+            self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v35.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
             sat_cards = [row for row in manifest["cards"] if row.get("type") == "astro-satellite-card"]
             self.assertEqual(len(sat_cards), 1)
