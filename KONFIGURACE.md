@@ -4,7 +4,7 @@ Tato stránka popisuje parametry Home Assistant App **Astro Weather Backend**. H
 
 ## Co je nutné změnit
 
-Po instalaci zkontroluj nebo vyplň minimálně:
+Po instalaci zkontrolujte nebo vyplňte minimálně:
 
 | Parametr | Nutné | Význam |
 | --- | --- | --- |
@@ -15,14 +15,14 @@ Po instalaci zkontroluj nebo vyplň minimálně:
 | `eumetsat_consumer_key` | pro CLM | EUMETSAT Consumer key pro kvantitativní satelitní data. |
 | `eumetsat_consumer_secret` | pro CLM | EUMETSAT Consumer secret. |
 
-Pokud EUMETSAT klíče nevyplníš, veřejný IR obraz může fungovat, ale kvantitativní CLM data nebudou dostupná.
+Pokud EUMETSAT klíče nevyplníte, veřejný IR obraz může fungovat, ale kvantitativní CLM data nebudou dostupná.
 
 ## Lokalita a čas
 
 | Parametr | Výchozí | Rozsah / typ | Popis |
 | --- | ---: | --- | --- |
-| `latitude` | `50.0755` | `float` | Zeměpisná šířka. Změň na skutečnou polohu observatoře. |
-| `longitude` | `14.4378` | `float` | Zeměpisná délka. Změň na skutečnou polohu observatoře. |
+| `latitude` | `50.0755` | `float` | Zeměpisná šířka. Změňte na skutečnou polohu observatoře. |
+| `longitude` | `14.4378` | `float` | Zeměpisná délka. Změňte na skutečnou polohu observatoře. |
 | `altitude` | `250` | `int` | Nadmořská výška v metrech. |
 | `timezone` | `Europe/Prague` | `string` | Časová zóna pro lokální časy, noc a UI. |
 
@@ -97,9 +97,9 @@ Výchozích **30 km** je rozumný kompromis pro běžné astrofotografické rozh
 
 1. Registrace/přihlášení: https://user.eumetsat.int/
 2. API Key Management: https://api.eumetsat.int/api-key/
-3. Zkopíruj **Consumer key** a **Consumer secret** z `User Credentials`.
+3. Zkopírujte **Consumer key** a **Consumer secret** z `User Credentials`.
 
-Nevkládej ručně krátkodobý access token. Backend si jej vytváří sám.
+Nevkládejte ručně krátkodobý access token. Backend si jej vytváří sám.
 
 ### Význam satelitních hodnot
 
@@ -140,7 +140,7 @@ Seeing je modelový odhad a má být chápán jako doplňkový indikátor, ne ja
 | `install_dashboard_cards` | `true` | Automaticky kopíruje custom karty do `/config/www`. |
 | `install_lovelace_resources` | `true` | Udržuje stabilní Astro Weather Lovelace resource. |
 
-Doporučení: názvy entit neměň, pokud pro to nemáš konkrétní důvod. Dokumentace a příklady předpokládají výchozí názvy.
+Doporučení: názvy entit neměňte, pokud pro to nemáte konkrétní důvod. Dokumentace a příklady předpokládají výchozí názvy.
 
 ## Debug
 
@@ -148,7 +148,7 @@ Doporučení: názvy entit neměň, pokud pro to nemáš konkrétní důvod. Dok
 | --- | ---: | --- |
 | `debug` | `false` | Zapne podrobnější diagnostiku a tracebacky v logu. |
 
-Zapínej jen při řešení problému; běžně jej nech `false`.
+Zapínejte jen při řešení problému; běžně ponechte `false`.
 
 ## Doporučený minimální blok konfigurace
 
@@ -160,15 +160,15 @@ longitude: 14.0000
 altitude: 500
 timezone: "Europe/Prague"
 
-eumetsat_consumer_key: "TVUJ_KEY"
-eumetsat_consumer_secret: "TVUJ_SECRET"
+eumetsat_consumer_key: "VAS_KEY"
+eumetsat_consumer_secret: "VAS_SECRET"
 ```
 
-Ostatní výchozí hodnoty bych při první instalaci neměnila. Nejdřív nech systém několik nocí běžet a až potom upravuj prahy podle skutečných podmínek své observatoře.
+Ostatní výchozí hodnoty se při první instalaci doporučuje ponechat. Nejprve nechte systém několik nocí běžet a až potom upravujte prahy podle skutečných podmínek své observatoře.
 
 ## Doporučené pořadí ladění
 
-Pokud chceš systém přizpůsobit konkrétní technice, měň parametry postupně:
+Pokud chcete systém přizpůsobit konkrétní technice, měňte parametry postupně:
 
 1. lokalita a timezone,
 2. délka požadovaného dobrého bloku,
@@ -177,4 +177,4 @@ Pokud chceš systém přizpůsobit konkrétní technice, měň parametry postupn
 5. radius prostorové analýzy,
 6. teprve potom skórovací a disagreement prahy.
 
-Neměň několik skupin prahů najednou, jinak bude obtížné poznat, co změnilo verdikt.
+Neměňte několik skupin prahů najednou, jinak bude obtížné poznat, co změnilo verdikt.

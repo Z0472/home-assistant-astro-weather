@@ -2,7 +2,7 @@
 
 Tento repozitář je od nynějška dokumentován jako jeden aktuální výchozí stav.
 
-Starší interní vývojové iterace a jejich mezikroky zde záměrně nejsou rozepisovány. Pro instalaci, konfiguraci a provoz používej vždy aktuální dokumentaci v:
+Starší interní vývojové iterace a jejich mezikroky zde záměrně nejsou rozepisovány. Pro instalaci, konfiguraci a provoz používejte vždy aktuální dokumentaci v:
 
 - [README.md](README.md)
 - [INSTALACE.md](INSTALACE.md)
