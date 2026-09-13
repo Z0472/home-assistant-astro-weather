@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.10 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.11 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -143,12 +143,30 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("satellite_local_cloud_pct", source)
         self.assertIn("_localVsAreaV8", source)
 
+    def test_satellite_card_v9_uses_wms_time_history_without_disk_storage(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v9.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-satellite-card-v8.js";', source)
+        self.assertIn('url.searchParams.set("time", stamp.toISOString())', source)
+        self.assertIn("history_frames", source)
+        self.assertIn("visual_history_frames", source)
+        self.assertIn("history-slider-v9", source)
+        self.assertIn("history-play-v9", source)
+        self.assertIn("Živě", source)
+        self.assertIn("new Image()", source)
+        self.assertIn("Browser cache only", source)
+        self.assertIn(".sample-v4 { opacity:0 !important; }", source)
+        self.assertIn("CLM body jsou skryté", source)
+        self.assertIn("_irHistoryV9", source)
+        self.assertNotIn("/data/cache", source)
+
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.10")
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.11")
         self.assertEqual(ui.ASTRO_CARD_VERSION, 34)
-        self.assertEqual(ui.SATELLITE_CARD_VERSION, 8)
+        self.assertEqual(ui.SATELLITE_CARD_VERSION, 9)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
+        self.assertEqual(ui.VISUAL_HISTORY_FRAMES, 20)
+        self.assertEqual(ui.VISUAL_HISTORY_STEP_MINUTES, 10)
 
 
 if __name__ == "__main__":
