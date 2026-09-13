@@ -126,7 +126,7 @@ Pokud backend po správném zadání key/secret hlásí `401` nebo `403`:
 2. znovu se přihlas do User Portal,
 3. otevři API Key Management a ověř key/secret,
 4. zkontroluj v User Portal sekci datových licencí, zda má účet oprávnění pro požadovaný produkt,
-5. po změně licence se odhlas a znovu přihlas; aktivace oprávnění nemusí být okamžitá.
+5. po změně licence se odhlas a znovu přihlas. EUMETSAT uvádí, že zpracování nové licence může trvat až přibližně jednu hodinu a pro aktivaci může být potřeba nové přihlášení.
 
 `eumetsat_consumer_secret` je v Home Assistant konfiguraci veden jako heslo a backend jej nevystavuje v senzorových atributech.
 
