@@ -1,9 +1,10 @@
-"""Satellite/UI refinements for Astro Weather Backend 12.4.10.
+"""Satellite/UI refinements for Astro Weather Backend 12.4.11.
 
-Keeps the 12.4.9 spatially-correct satellite comparison: current model
-consensus is compared with the centre CLM sample over the observatory, while
-the 30 km sample fraction remains regional context and nowcast. Main card v34
-adds a compact wide-screen detail layout without changing forecast logic.
+Keeps the spatially-correct satellite comparison from 12.4.9, the compact main
+card from 12.4.10, and adds an EUMETView IR10.5 history player in satellite
+card v9. Historical imagery is requested directly from the WMS time dimension
+and is cached only by the browser; no JPEG history is written to Home Assistant
+storage.
 """
 from __future__ import annotations
 
@@ -16,11 +17,13 @@ import satellite_lowload_patch as lowload
 import satellite_index_sampler_patch as index_sampler
 import storage_protection_patch as storage
 
-RELEASE_VERSION = "12.4.10"
+RELEASE_VERSION = "12.4.11"
 ASTRO_CARD_VERSION = 34
-SATELLITE_CARD_VERSION = 8
+SATELLITE_CARD_VERSION = 9
 VISUAL_RADIUS_KM = 150.0
 VISUAL_SIZE_PX = 900
+VISUAL_HISTORY_FRAMES = 20
+VISUAL_HISTORY_STEP_MINUTES = 10
 
 
 def _regional_ir_url(options: dict[str, Any], radius_km: float = VISUAL_RADIUS_KM) -> str:
@@ -91,6 +94,10 @@ def install(core: Any) -> None:
             "latitude": round(float(options["latitude"]), 5),
             "longitude": round(float(options["longitude"]), 5),
         }
+        document["visual_history_supported"] = True
+        document["visual_history_frames"] = VISUAL_HISTORY_FRAMES
+        document["visual_history_step_minutes"] = VISUAL_HISTORY_STEP_MINUTES
+        document["visual_history_source"] = "EUMETView WMS time dimension"
         return document
 
     sat._satellite_document = satellite_document
@@ -98,9 +105,9 @@ def install(core: Any) -> None:
         core_arg, options, satellite, old_comparison
     )
 
-    # v34 imports v33 -> v32 -> v31 -> v30. v8 imports v7 -> v6 -> v5 -> v4 -> v3.
-    # Install the full dependency chain so a clean Home Assistant install is
-    # self-contained and never depends on old browser/cache files.
+    # v34 imports v33 -> v32 -> v31 -> v30. v9 imports v8 -> v7 -> v6 -> v5
+    # -> v4 -> v3. Install the full dependency chain so clean Home Assistant
+    # installs are self-contained and independent of browser cache leftovers.
     core.ASTRO_START_CARD_VERSION = ASTRO_CARD_VERSION
     sat.SATELLITE_CARD_VERSION = SATELLITE_CARD_VERSION
 
@@ -130,6 +137,7 @@ def install(core: Any) -> None:
     installs.append(("astro-satellite-card-v6.js", "astro-satellite-card-v6.js"))
     installs.append(("astro-satellite-card-v7.js", "astro-satellite-card-v7.js"))
     installs.append(("astro-satellite-card-v8.js", "astro-satellite-card-v8.js"))
+    installs.append(("astro-satellite-card-v9.js", "astro-satellite-card-v9.js"))
     core.DASHBOARD_CARD_INSTALLS = tuple(installs)
 
     sat.RELEASE_VERSION = RELEASE_VERSION
