@@ -2,103 +2,89 @@
 
 ![Tests](https://github.com/Z0472/home-assistant-astro-weather/actions/workflows/tests.yml/badge.svg)
 
-**Astro Weather** je Home Assistant App/Add-on pro plánování astrofotografie. Z několika nezávislých meteorologických, astronomických a satelitních zdrojů vytváří jeden provozní výsledek:
+Astro Weather je Home Assistant App/Add-on určený pro rozhodování, zda má smysl spustit astrofotografickou techniku. Kombinuje několik nezávislých meteorologických modelů, astronomickou noc, Měsíc, kvalitu oblohy a aktuální satelitní data do jednoho provozního výsledku:
 
 **SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
 
-Cílem není nahradit profesionální meteorologii, ale odstranit nutnost před každou nocí ručně porovnávat několik modelů, Měsíc, seeing, aerosoly a aktuální satelitní situaci.
+Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nejde o přehled změn proti starším verzím.
 
-> **Jazyk a oblast použití:** UI i dokumentace jsou zatím pouze česky. Projekt je primárně určen pro observatoře v **České republice**, protože jedna z hlavních modelových větví používá regionální data **ČHMÚ ALADIN**. MET Norway a DWD ICON mají širší pokrytí, ale provoz mimo ČR zatím není hlavní podporovaný scénář.
+> **Jazyk a oblast použití**
+>
+> Uživatelské rozhraní a dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu.
 
 ## Dokumentace
 
-- **[INSTALACE.md](INSTALACE.md)** - instalace do Home Assistant krok za krokem
-- **[KONFIGURACE.md](KONFIGURACE.md)** - všechny volby aplikace a doporučené hodnoty
-- **[SATELLITE.md](SATELLITE.md)** - EUMETSAT MTG/FCI, CLM, IR snímky a timelapse
+- [INSTALACE.md](INSTALACE.md) – čistá instalace do Home Assistantu, první spuštění a EUMETSAT registrace.
+- [KONFIGURACE.md](KONFIGURACE.md) – všechny konfigurační parametry a jejich význam.
+- [SATELLITE.md](SATELLITE.md) – technický popis MTG/FCI, CLM, IR10.5, nowcastu a timelapse.
 
-Tato dokumentace popisuje **současný stav projektu jako výchozí bod**. README není seznam změn proti starším verzím.
+## Co aplikace používá
 
-## Co Astro Weather používá
+- **MET Norway Locationforecast** – bodová předpověď počasí, oblačnost, mlha, srážky, teplota, rosný bod a vítr.
+- **ČHMÚ ALADIN CZ 1 km** – regionální vysokorozlišovací oblačnost z GRIB dat.
+- **DWD ICON Seamless / Open-Meteo** – další nezávislý model oblačnosti a prostorová analýza okolí observatoře.
+- **Interní výpočet Měsíce** – astronomická noc, fáze, osvětlení, východ/západ a rušení focení.
+- **CAMS / Open-Meteo Air Quality** – AOD 550 a informativní prašnost/aerosoly.
+- **7Timer ASTRO** – modelový odhad seeingu.
+- **EUMETSAT MTG/FCI** – aktuální satelitní Cloud Mask (CLM), IR10.5 obraz a krátkodobý vizuální/číselný nowcast oblačnosti.
 
-### Meteorologické modely
-
-- **MET Norway Locationforecast** - bodová předpověď, oblačnost a její vrstvy, srážky, teplota, rosný bod a vítr.
-- **ČHMÚ ALADIN** - regionální model s nativními GRIB daty oblačnosti pro ČR.
-- **DWD ICON Seamless přes Open-Meteo** - třetí nezávislý model a zdroj pro část prostorové analýzy.
-
-Modely se neberou jako jednoduchý průměr za všech okolností. Backend sleduje jejich rozptyl, dostupnost a shodu. `Shoda modelů` znamená vzájemnou konzistenci modelů, **nikoli pravděpodobnost, že se předpověď splní**.
-
-### Astronomická noc a Měsíc
-
-Měsíc se počítá interně. Backend zná:
-
-- začátek a konec astronomické noci,
-- fázi a osvětlení Měsíce,
-- výšku Měsíce,
-- východ a západ,
-- dobu, kdy Měsíc skutečně ruší astronomickou tmu.
-
-Rozhodnutí o focení se vztahuje k **astronomické noci**, i když hodinový přehled kvůli praktickému plánování zobrazuje také soumrak a svítání.
-
-### Kvalita oblohy
-
-- **CAMS / Open-Meteo Air Quality** - AOD 550 pro průzračnost a informační prach.
-- **7Timer ASTRO** - modelový odhad seeingu.
-
-### EUMETSAT MTG/FCI
-
-Satelitní část má dvě role:
-
-1. **CLM Cloud Mask** - skutečná kategorizace jasno/mrak nad observatoří a v jejím okolí.
-2. **IR10.5 obraz** - vizuální kontrola pohybu oblačnosti v širším okolí.
-
-Satelitní karta rozlišuje stav přímo nad observatoří od regionálního podílu oblačných vzorků. Obsahuje také krátký extrapolační nowcast a přehrávání přibližně posledních tří hodin IR historie.
-
-Satelit je v současné rozhodovací architektuře **pozorovací kontrola a nowcast**. Samotný satelitní údaj přímo nepřepisuje finální verdikt `SPUSTIT / NEJISTÉ / NESPOUŠTĚT`.
-
-Podrobnosti jsou v [SATELLITE.md](SATELLITE.md).
-
-## Prostorová analýza oblačnosti
-
-Bodová předpověď může být problematická v situaci, kdy model posune hranu oblačnosti o několik kilometrů. Proto Astro Weather vedle bodu observatoře sleduje i okolí.
-
-Standardně se používá **17 vzorkovacích bodů**:
-
-- observatoř,
-- 8 směrů v polovině nastaveného poloměru,
-- 8 směrů na plném poloměru.
-
-Z toho se odvozuje například:
-
-- stabilita oblačnosti v okolí,
-- zda je lokalita poblíž hrany oblačnosti,
-- přibližný směr a vzdálenost hrany,
-- trend zatahování nebo vyjasňování,
-- orientační čas významné změny.
-
-Tato vrstva je úmyslně konzervativní. Může snížit jistotu výsledku, pokud je lokalita na hraně nebo se modely prostorově rozcházejí.
+SkyAccuracy.cz se nepoužívá.
 
 ## Jak vzniká rozhodnutí
 
-Backend kombinuje několik typů informace:
+Hlavní rozhodnutí pracuje s konsensem MET + ALADIN + ICON a zároveň zohledňuje:
 
-- modelový konsensus MET / ALADIN / ICON,
-- průběh oblačnosti během astronomické noci,
-- prostorovou stabilitu okolí,
-- srážky, mlhu a vítr,
+- astronomickou tmu,
 - rušení Měsícem,
+- srážky, mlhu a vítr,
 - AOD,
-- seeing.
+- seeing,
+- prostorovou stabilitu oblačnosti v okolí observatoře,
+- dostupnost dostatečně dlouhého kvalitního bloku na začátku noci.
 
-Výsledkem pro každou noc je:
+`Shoda modelů` znamená vzájemnou shodu meteorologických modelů. Není to pravděpodobnost správnosti předpovědi.
 
-- verdikt `SPUSTIT`, `NEJISTÉ` nebo `NESPOUŠTĚT`,
-- vysvětlení důvodu,
-- doporučený souvislý blok,
-- vhodný čas přípravy a startu,
-- hodinový přehled od večera do rána.
+Satelit je v současné verzi používán jako **aktuální pozorovaná realita a kontrola modelů**, nikoliv jako přímý přepis hlavního verdiktu. Díky tomu je vidět, zda modely právě odpovídají tomu, co MTG/FCI skutečně pozoruje nad observatoří a v jejím okolí.
 
-Noční průměry modelů jsou časově vážené podle skutečného překryvu s astronomickou nocí; necelá okrajová hodina nemá stejnou váhu jako celá hodina.
+## Rychlá instalace
+
+Podrobný postup je v [INSTALACE.md](INSTALACE.md).
+
+1. V Home Assistant otevři **Nastavení → Aplikace / Apps** a správu repozitářů.
+2. Přidej repozitář:
+
+   ```text
+   https://github.com/Z0472/home-assistant-astro-weather
+   ```
+
+3. Nainstaluj **Astro Weather Backend**.
+4. V konfiguraci aplikace nastav minimálně:
+   - `latitude` – zeměpisná šířka observatoře,
+   - `longitude` – zeměpisná délka,
+   - `altitude` – nadmořská výška v metrech,
+   - zkontroluj `timezone` – pro ČR obvykle `Europe/Prague`.
+5. Pokud chceš kvantitativní satelitní CLM data, doplň také:
+   - `eumetsat_consumer_key`,
+   - `eumetsat_consumer_secret`.
+6. Ulož konfiguraci a aplikaci spusť.
+7. Zkontroluj log – měly by se načíst modely, interní Měsíc, kvalita oblohy a případně EUMETSAT CLM.
+
+Všechny parametry jsou popsány v [KONFIGURACE.md](KONFIGURACE.md).
+
+## EUMETSAT účet a API klíče
+
+Pro veřejný IR obraz nejsou klíče nutné. Pro skutečné kvantitativní **MTG/FCI CLM** vzorky je ale potřeba EUMETSAT účet a dvojice **Consumer key / Consumer secret**.
+
+1. Zaregistruj se nebo přihlas na EUMETSAT User Portal:
+   - https://user.eumetsat.int/
+2. Po přihlášení otevři API Key Management:
+   - https://api.eumetsat.int/api-key/
+3. V části **User Credentials** zobraz skryté hodnoty a zkopíruj:
+   - **Consumer key** → `eumetsat_consumer_key`
+   - **Consumer secret** → `eumetsat_consumer_secret`
+4. Do Home Assistantu se nevkládá dočasný access token. Backend si krátkodobý token vytváří automaticky z key + secret.
+
+Podrobnosti a řešení problémů s licencemi jsou v [INSTALACE.md](INSTALACE.md#eumetsat--registrace-a-api-klíče) a technické informace o satelitní vrstvě v [SATELLITE.md](SATELLITE.md).
 
 ## Home Assistant entity
 
@@ -110,7 +96,7 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-Při aktivním EUMETSAT CLM:
+Satelitní entity:
 
 ```text
 sensor.astro_satelit_oblacnost
@@ -120,69 +106,95 @@ sensor.astro_aladin_satelit_chyba
 sensor.astro_icon_satelit_chyba
 ```
 
-## Dashboard
+Nejdůležitější entity jsou:
 
-Aplikace dodává tři hlavní custom cards:
+- `sensor.astro_vhodnost_foceni` – hlavní verdikt a detail vyhodnocených nocí,
+- `sensor.astro_satelit_oblacnost` – aktuální CLM stav nad observatoří, regionální oblačnost a nowcast,
+- `sensor.astro_model_satelit_shoda` – okamžité porovnání modelového konsensu se satelitní realitou.
 
-- `custom:astro-start-card` - centrální rozhodnutí a detail noci,
-- `custom:astro-satellite-card` - aktuální satelit, CLM okolí, nowcast a IR historie,
-- `custom:moon-forecast-card` - delší výhled Měsíce a vhodnosti nocí.
+## Dashboard karty
 
-JavaScript karty se instalují do `/config/www`, ale Lovelace používá pouze jeden stabilní loader:
+Aplikace automaticky kopíruje aktuální JavaScript karty do `/config/www` a používá jeden stabilní Lovelace resource:
 
 ```text
 /local/astro-weather-cards-loader.js
 ```
 
-Jednotlivé verzované `.js` soubory se do Resources ručně nepřidávají.
+V **Nastavení → Dashboardy → Zdroje / Resources** má být pro Astro Weather pouze tento jeden resource typu **JavaScript module**. Jednotlivé verzované soubory karet se jako resources ručně nepřidávají.
 
-Přesný postup a YAML příklady jsou v [INSTALACE.md](INSTALACE.md).
-
-## Rychlá instalace
-
-Repozitář pro Home Assistant:
-
-```text
-https://github.com/Z0472/home-assistant-astro-weather
-```
-
-Po instalaci je nutné nastavit především skutečnou polohu observatoře:
+### Hlavní rozhodovací karta
 
 ```yaml
-latitude: 48.0000
-longitude: 14.0000
-altitude: 500
-timezone: Europe/Prague
+type: custom:astro-start-card
+decision_entity: sensor.astro_vhodnost_foceni
+weather_entity: sensor.astro_weather_detail
+moon_entity: sensor.mesic_foceni_predpoved
+days: 3
 ```
 
-Pro kvantitativní satelitní CLM vrstvu doplň EUMETSAT consumer key a consumer secret. Bez nich hlavní meteorologická předpověď a rozhodování fungují dál.
+### Satelitní karta
 
-Celý postup: **[INSTALACE.md](INSTALACE.md)**.
+```yaml
+type: custom:astro-satellite-card
+satellite_entity: sensor.astro_satelit_oblacnost
+comparison_entity: sensor.astro_model_satelit_shoda
+show_clm_map: true
+show_image: true
+```
 
-## Odolnost při výpadku zdrojů
+### Měsíční výhled
 
-Astro Weather je navržen tak, aby výpadek doplňkového zdroje pokud možno neshodil celý backend.
+```yaml
+type: custom:moon-forecast-card
+entity: sensor.mesic_foceni_predpoved
+weather_entity: sensor.astro_weather_detail
+decision_entity: sensor.astro_vhodnost_foceni
+days: 45
+```
 
-- Pokud chybí jeden meteorologický model, použijí se dostupné modely a sníží se jistota.
-- Pokud není dostupný AOD nebo seeing, základní meteorologická předpověď pokračuje.
-- Pokud nejsou dostupné EUMETSAT credentials nebo CLM data, satelitní kvantitativní vrstva je `unavailable`, ale finální modelové rozhodnutí pokračuje.
+Po aktualizaci aplikace použij `Ctrl+F5`, pokud prohlížeč stále zobrazuje starou verzi custom karty.
 
-**SkyAccuracy.cz se nepoužívá.**
+## Co zobrazuje satelitní karta
 
-## Ochrana úložiště Home Assistant
+Satelitní karta rozlišuje dvě různé veličiny:
 
-Aplikace počítá s nepřetržitým provozem i na malých Home Assistant systémech.
+- **Observatoř: jasno / mrak** – středový CLM vzorek přímo nad observatoří.
+- **Okolí 30 km: N % oblačných CLM vzorků** – podíl oblačných bodů z prostorového vzorkování v okolí.
 
-Velké dočasné GRIB soubory pro satelit a ALADIN se zpracovávají v RAM (`/dev/shm`) a po vzorkování se odstraňují. IR timelapse se nestahuje jako archiv JPEGů na disk Home Assistant; historické WMS snímky načítá až prohlížeč.
+Dále obsahuje:
 
-## Vývoj a testy
+- krátkodobý `TEĎ / +1 h / +2 h / +3 h` nowcast okolí,
+- IR10.5 obraz okolí observatoře,
+- CLM body a 15/30km kruhy,
+- shodu modelů se satelitem přímo nad observatoří,
+- přehrávání přibližně posledních tří hodin IR historie pomocí EUMETView WMS `time=`.
 
-Každá změna v `main` prochází GitHub Actions:
+Historické JPEGy se neukládají na disk Home Assistantu; timelapse používá historický WMS a cache prohlížeče.
 
-- kompilace Python modulů,
-- kontrola syntaxe JavaScript karet,
-- regresní testy modelů, rozhodování, Měsíce, prostorové vrstvy a satelitu,
-- test release wiring,
-- Docker build Home Assistant aplikace.
+## Prostorová analýza oblačnosti
 
-Projekt je vyvíjen především podle reálného provozu observatoře a praktického rozhodnutí, zda má danou noc smysl techniku spouštět a chladit.
+Ve výchozím nastavení:
+
+```yaml
+spatial_cloud_analysis: true
+spatial_radius_km: 30
+```
+
+Backend vyhodnocuje okolí observatoře, aby jediný bod předpovědi nebyl příliš citlivý na mírně posunutou hranu oblačnosti. Sleduje mimo jiné stabilitu okolí, směr hrany oblačnosti a trend zatahování/vyjasňování.
+
+## Ochrana úložiště Home Assistantu
+
+Velké satelitní a GRIB pracovní soubory se zpracovávají v RAM (`/dev/shm`) a po zpracování se mažou. Cílem je zabránit zbytečným opakovaným zápisům na SD kartu nebo SSD Home Assistantu.
+
+Na disk se neukládá archiv plných satelitních snímků. Satelitní historie v UI se načítá přímo z EUMETView.
+
+## Podporované architektury
+
+```text
+amd64
+aarch64
+```
+
+## Stav projektu
+
+Projekt je aktivně vyvíjen pro praktické řízení amatérské observatoře. Výstup je pomůcka pro provozní rozhodnutí, nikoliv bezpečnostní meteorologický systém. Pro ochranu techniky je vhodné zachovat samostatná hardwarová a Home Assistant bezpečnostní pravidla pro déšť, vítr, střechu a další kritické stavy.
