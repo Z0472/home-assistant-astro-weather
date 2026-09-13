@@ -1,249 +1,180 @@
 # Konfigurace Astro Weather
 
-Tento soubor popisuje aktuální volby aplikace **Astro Weather Backend**. Dokumentace popisuje současný stav projektu; není to přehled změn mezi verzemi.
+Tato stránka popisuje parametry Home Assistant App **Astro Weather Backend**. Hodnoty uvedené jako výchozí odpovídají aktuálnímu výchozímu nastavení projektu.
 
-## Poloha a čas
+## Co je nutné změnit
 
-| Parametr | Výchozí hodnota | Rozsah / význam |
-| --- | ---: | --- |
-| `latitude` | `50.0755` | Zeměpisná šířka observatoře. Použij skutečnou polohu dalekohledu. |
-| `longitude` | `14.4378` | Zeměpisná délka observatoře. |
-| `altitude` | `250` | Nadmořská výška v metrech. |
-| `timezone` | `Europe/Prague` | Časové pásmo pro lokální časy v kartách a astronomických výpočtech. |
-| `refresh_minutes` | `30` | Obnova hlavní meteorologické předpovědi, 10–180 minut. |
-| `horizon_hours` | `72` | Délka předpovědi, 24–120 hodin. |
+Po instalaci zkontroluj nebo vyplň minimálně:
 
-## Hlavní rozhodnutí
+| Parametr | Nutné | Význam |
+| --- | --- | --- |
+| `latitude` | ano | Zeměpisná šířka observatoře v desetinných stupních. |
+| `longitude` | ano | Zeměpisná délka observatoře v desetinných stupních. |
+| `altitude` | ano | Nadmořská výška observatoře v metrech. |
+| `timezone` | zkontrolovat | Pro ČR obvykle `Europe/Prague`. |
+| `eumetsat_consumer_key` | pro CLM | EUMETSAT Consumer key pro kvantitativní satelitní data. |
+| `eumetsat_consumer_secret` | pro CLM | EUMETSAT Consumer secret. |
 
-| Parametr | Výchozí hodnota | Význam |
-| --- | ---: | --- |
-| `decision_nights` | `3` | Počet nocí zpracovaných pro rozhodovací kartu, 1–5. |
-| `min_good_block_hours` | `4.0` | Minimální délka souvislého kvalitního bloku pro focení. |
-| `max_start_delay_minutes` | `120` | Jak pozdě po začátku astronomické noci ještě může začít doporučený blok. |
-| `prep_minutes` | `45` | Rezerva na přípravu observatoře před plánovaným startem. |
-| `good_score` | `70` | Hranice skóre pro kvalitní hodinu. |
-| `marginal_score` | `50` | Hranice mezi hraniční a špatnou hodinou. |
-| `disagreement_warn` | `35` | Rozptyl modelů v procentních bodech, od kterého se bere neshoda vážně. |
-| `disagreement_bad` | `55` | Silná neshoda modelů. |
-| `wind_warn_ms` | `8.0` | Varovná rychlost větru v m/s. |
-| `wind_bad_ms` | `12.0` | Špatná rychlost větru v m/s. |
+Pokud EUMETSAT klíče nevyplníš, veřejný IR obraz může fungovat, ale kvantitativní CLM data nebudou dostupná.
 
-`Shoda modelů` není pravděpodobnost správné předpovědi. Vyjadřuje, jak podobně v daném čase hodnotí oblačnost dostupné modely.
+## Lokalita a čas
 
-Noční průměry modelů jsou počítány pro skutečný překryv s astronomickou nocí; okrajové necelé hodiny nemají stejnou váhu jako celá hodina.
+| Parametr | Výchozí | Rozsah / typ | Popis |
+| --- | ---: | --- | --- |
+| `latitude` | `50.0755` | `float` | Zeměpisná šířka. Změň na skutečnou polohu observatoře. |
+| `longitude` | `14.4378` | `float` | Zeměpisná délka. Změň na skutečnou polohu observatoře. |
+| `altitude` | `250` | `int` | Nadmořská výška v metrech. |
+| `timezone` | `Europe/Prague` | `string` | Časová zóna pro lokální časy, noc a UI. |
 
-## Meteorologické modely
+Poloha ovlivňuje modely, astronomickou noc, Měsíc, satelitní CLM i mapový výřez.
 
-### MET Norway
+## Základní meteorologická předpověď
 
-MET Norway Locationforecast je základní bodový zdroj pro počasí, vrstvy oblačnosti, srážky, teplotu, rosný bod a vítr.
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `refresh_minutes` | `30` | 10–180 min | Perioda hlavní obnovy meteorologických dat. Satelit má vlastní periodu. |
+| `horizon_hours` | `72` | 24–120 h | Délka meteorologického horizontu. |
+| `met_user_agent` | `AstroWeatherBackend/...` | string | User-Agent pro MET Norway. Běžně není potřeba měnit. |
+| `use_icon` | `true` | bool | Zapne DWD ICON Seamless jako třetí model. |
 
-```yaml
-met_user_agent: "AstroWeatherBackend/... https://github.com/Z0472/home-assistant-astro-weather"
-```
+Pro hlavní konsensus se používají dostupné hodnoty z MET, ALADIN a ICON. Pokud jeden zdroj není dostupný, backend může pokračovat s ostatními modely podle své fallback logiky.
 
-`met_user_agent` ponech standardně beze změny, pokud k tomu nemáš konkrétní důvod.
+ALADIN je zásadní důvod, proč je projekt primárně zaměřený na Českou republiku.
 
-### ČHMÚ ALADIN
+## Rozhodování o focení
 
-ALADIN používá nativní regionální GRIB data a je jedním z hlavních důvodů, proč je projekt zatím zaměřen především na Českou republiku.
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `decision_nights` | `3` | 1–5 | Počet nocí zobrazených/vyhodnocených v hlavní kartě. |
+| `min_good_block_hours` | `4.0` | 1–12 h | Minimální délka dobrého souvislého bloku. |
+| `max_start_delay_minutes` | `120` | 0–360 min | Jak pozdě po začátku astronomické tmy ještě dává smysl doporučit start focení. |
+| `prep_minutes` | `45` | 0–240 min | Rezerva na přípravu/chlazení techniky před doporučeným startem. |
+| `good_score` | `70` | 0–100 | Hranice skóre pro dobrý stav. |
+| `marginal_score` | `50` | 0–100 | Hranice skóre pro hraniční stav. |
+| `disagreement_warn` | `35` | 0–100 p. b. | Rozptyl modelů, od kterého je neshoda významná. |
+| `disagreement_bad` | `55` | 0–100 p. b. | Silná neshoda modelů. |
+| `wind_warn_ms` | `8.0` | m/s | Varovná hranice větru. |
+| `wind_bad_ms` | `12.0` | m/s | Kritická hranice větru. Musí být alespoň stejně vysoká jako `wind_warn_ms`. |
 
-ALADIN nemá samostatný přepínač; backend ho použije, pokud jsou data pro zadanou lokalitu dostupná a validní.
-
-### DWD ICON
-
-```yaml
-use_icon: true
-```
-
-DWD ICON je třetí nezávislý model v konsensu a současně zdroj pro část prostorové analýzy oblačnosti.
-
-## Prostorová analýza oblačnosti
-
-```yaml
-spatial_cloud_analysis: true
-spatial_radius_km: 30
-```
-
-| Parametr | Výchozí hodnota | Rozsah / význam |
-| --- | ---: | --- |
-| `spatial_cloud_analysis` | `true` | Zapíná prostorovou analýzu okolí observatoře. |
-| `spatial_radius_km` | `30` | Poloměr okolí, 10–50 km. |
-
-Vzorkuje se 17 míst:
-
-- střed = observatoř,
-- 8 směrů ve vzdálenosti R/2,
-- 8 směrů ve vzdálenosti R.
-
-Cílem není vytvořit další mapu počasí, ale zjistit, zda je observatoř uvnitř stabilně jasné/zatažené oblasti nebo poblíž hrany oblačnosti, která může být modelově posunuta o několik kilometrů.
-
-Prostorová vrstva je konzervativní: může snížit jistotu rozhodnutí, ale nemá sama přepsat tvrdý zákaz na `SPUSTIT`.
+Tyto prahy má smysl ladit podle konkrétní montáže, střechy, ohniska a požadované kvality dat. Výchozí hodnoty jsou doporučený startovní bod, nikoli univerzální fyzikální norma.
 
 ## Měsíc
 
-```yaml
-use_moon: true
-moon_entity: sensor.mesic_foceni_predpoved
-moon_horizon_days: 45
-moon_interference_illumination_pct: 15.0
-moon_interference_altitude_deg: 0.0
-```
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `use_moon` | `true` | bool | Zapne interní výpočet Měsíce a jeho vlivu. |
+| `moon_entity` | `sensor.mesic_foceni_predpoved` | string | Název publikované entity. |
+| `moon_horizon_days` | `45` | 3–60 dní | Počet dní/nocí dopředu pro měsíční přehled. |
+| `moon_interference_illumination_pct` | `15.0` | 0–100 % | Prah osvětlení používaný při posuzování rušení Měsícem. |
+| `moon_interference_altitude_deg` | `0.0` | −5 až 30° | Prah výšky Měsíce nad horizontem pro posuzování rušení. |
 
-| Parametr | Výchozí hodnota | Rozsah / význam |
-| --- | ---: | --- |
-| `use_moon` | `true` | Zapíná interní astronomický výpočet Měsíce. |
-| `moon_entity` | `sensor.mesic_foceni_predpoved` | Název publikované entity. |
-| `moon_horizon_days` | `45` | Počet dní dopředu, 3–60. |
-| `moon_interference_illumination_pct` | `15.0` | Od jakého osvětlení se může Měsíc považovat za rušivý. |
-| `moon_interference_altitude_deg` | `0.0` | Minimální výška Měsíce pro rušení, -5 až 30°. |
+Rozhodování o Měsíci je vztahováno k astronomické noci, nikoliv k celému kalendářnímu dni.
 
-Rozhodování o rušení Měsíce je vztažené k **astronomické noci**, nikoli k celé době od západu do východu Slunce.
+## Prostorová analýza oblačnosti
 
-## Aerosoly / průzračnost
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `spatial_cloud_analysis` | `true` | bool | Zapne prostorové vyhodnocení okolí observatoře. |
+| `spatial_radius_km` | `30` | 10–50 km | Poloměr okolí pro prostorovou analýzu modelové oblačnosti. |
 
-```yaml
-use_aerosols: true
-aerosol_refresh_minutes: 180
-aod_warn: 0.30
-aod_bad: 0.40
-```
+Prostorová vrstva slouží k odhalení situací, kdy je observatoř blízko hrany oblačnosti a jediný bod modelu by byl příliš optimistický nebo pesimistický.
 
-Zdroj: CAMS přes Open-Meteo Air Quality.
+Výchozích **30 km** je rozumný kompromis pro běžné astrofotografické rozhodování.
 
-| Parametr | Výchozí hodnota | Význam |
-| --- | ---: | --- |
-| `use_aerosols` | `true` | Zapíná AOD 550. |
-| `aerosol_refresh_minutes` | `180` | Perioda obnovy 60–360 min. |
-| `aod_warn` | `0.30` | Prah pro výrazné zhoršení kvality. |
-| `aod_bad` | `0.40` | Prah pro špatnou kvalitu. Musí být vyšší než `aod_warn`. |
+## Satelit EUMETSAT MTG/FCI
 
-Prachová koncentrace je informační; hlavní veličinou pro průzračnost je AOD.
+| Parametr | Výchozí | Rozsah / typ | Popis |
+| --- | ---: | --- | --- |
+| `use_satellite` | `true` | bool | Zapne satelitní integraci. |
+| `satellite_radius_km` | `30` | 10–50 km | Poloměr regionálního CLM vzorkování. |
+| `satellite_refresh_minutes` | `10` | 10–60 min | Perioda kontroly nových CLM dat. Doporučeno ponechat 10 min. |
+| `satellite_entity` | `sensor.astro_satelit_oblacnost` | string | Hlavní satelitní entity. |
+| `satellite_comparison_entity` | `sensor.astro_model_satelit_shoda` | string | Entity okamžité shody modelů se satelitem. |
+| `eumetsat_consumer_key` | prázdné | string | EUMETSAT Consumer key. |
+| `eumetsat_consumer_secret` | prázdné | password | EUMETSAT Consumer secret. |
+
+### Kde získat klíče
+
+1. Registrace/přihlášení: https://user.eumetsat.int/
+2. API Key Management: https://api.eumetsat.int/api-key/
+3. Zkopíruj **Consumer key** a **Consumer secret** z `User Credentials`.
+
+Nevkládej ručně krátkodobý access token. Backend si jej vytváří sám.
+
+### Význam satelitních hodnot
+
+`center_cloud_pct` / stav observatoře odpovídá středovému CLM vzorku přímo nad observatoří.
+
+`cloud_pct` je regionální podíl oblačných CLM vzorků v okolí. Není to stejné jako procento oblačnosti přímo nad dalekohledem.
+
+Krátký nowcast `+1 / +2 / +3 h` je extrapolace trendu regionálních vzorků, nikoliv budoucí satelitní měření.
+
+## Aerosoly / AOD
+
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `use_aerosols` | `true` | bool | Zapne CAMS/Open-Meteo AOD. |
+| `aerosol_refresh_minutes` | `180` | 60–360 min | Perioda obnovy aerosolových dat. |
+| `aod_warn` | `0.30` | 0.11–4.99 | Varovný práh AOD 550. |
+| `aod_bad` | `0.40` | 0.12–5.0 | Špatný práh AOD 550; musí být vyšší než `aod_warn`. |
+
+Vyšší AOD obvykle znamená více aerosolu/zákalu a horší transparentnost oblohy.
 
 ## Seeing
 
-```yaml
-use_seeing: true
-seeing_warn_arcsec: 1.8
-seeing_bad_arcsec: 2.5
-```
+| Parametr | Výchozí | Rozsah | Popis |
+| --- | ---: | ---: | --- |
+| `use_seeing` | `true` | bool | Zapne modelový seeing z 7Timer ASTRO. |
+| `seeing_warn_arcsec` | `1.8` | 1.0–7.99″ | Varovná hranice seeingu. |
+| `seeing_bad_arcsec` | `2.5` | 1.01–8.0″ | Špatná hranice seeingu; musí být vyšší než `seeing_warn_arcsec`. |
 
-Zdroj: 7Timer ASTRO.
+Seeing je modelový odhad a má být chápán jako doplňkový indikátor, ne jako přesná lokální okamžitá hodnota.
 
-| Parametr | Výchozí hodnota | Význam |
+## Home Assistant entity a instalace karet
+
+| Parametr | Výchozí | Popis |
 | --- | ---: | --- |
-| `use_seeing` | `true` | Zapíná odhad seeingu. |
-| `seeing_warn_arcsec` | `1.8` | Varovný seeing v obloukových sekundách. |
-| `seeing_bad_arcsec` | `2.5` | Špatný seeing. Musí být vyšší než varovný práh. |
+| `publish_homeassistant_entities` | `true` | Publikuje entity do Home Assistantu. |
+| `weather_entity` | `sensor.astro_weather_detail` | Detail počasí. |
+| `decision_entity` | `sensor.astro_vhodnost_foceni` | Hlavní rozhodovací entity. |
+| `install_dashboard_cards` | `true` | Automaticky kopíruje custom karty do `/config/www`. |
+| `install_lovelace_resources` | `true` | Udržuje stabilní Astro Weather Lovelace resource. |
 
-Seeing je modelový odhad, ne lokální měření FWHM z kamery.
-
-## EUMETSAT MTG/FCI satelit
-
-```yaml
-use_satellite: true
-satellite_radius_km: 30
-satellite_refresh_minutes: 10
-satellite_entity: sensor.astro_satelit_oblacnost
-satellite_comparison_entity: sensor.astro_model_satelit_shoda
-eumetsat_consumer_key: ""
-eumetsat_consumer_secret: ""
-```
-
-| Parametr | Výchozí hodnota | Rozsah / význam |
-| --- | ---: | --- |
-| `use_satellite` | `true` | Zapíná satelitní vrstvu. |
-| `satellite_radius_km` | `30` | Poloměr CLM vzorkování, 10–50 km. |
-| `satellite_refresh_minutes` | `10` | Kontrola nového CLM, 10–60 min. |
-| `satellite_entity` | `sensor.astro_satelit_oblacnost` | Hlavní satelitní entita. |
-| `satellite_comparison_entity` | `sensor.astro_model_satelit_shoda` | Porovnání aktuálního modelového konsensu se satelitní realitou nad observatoří. |
-| `eumetsat_consumer_key` | prázdné | EUMETSAT API consumer key. |
-| `eumetsat_consumer_secret` | prázdné | EUMETSAT API consumer secret; Home Assistant ho vede jako password. |
-
-Důležité rozlišení:
-
-- **Observatoř: jasno/mrak** = jediný CLM vzorek přímo nad lokalitou.
-- **Okolí N km: X %** = podíl oblačných vzorků z 17 bodů v okolí.
-- `TEĎ / +1 / +2 / +3 h` = regionální krátkodobý extrapolační nowcast, nikoli budoucí satelitní měření.
-- `Satelit vs aktuální modely` porovnává modelový konsensus se středovým CLM vzorkem nad observatoří.
-
-Satelitní pozorování je v současné logice **pozorovací kontrola a nowcast**. Samo přímo nepřepisuje finální verdikt `SPUSTIT / NEJISTÉ / NESPOUŠTĚT`.
-
-Více v [SATELLITE.md](SATELLITE.md).
-
-## Home Assistant entity názvy
-
-```yaml
-publish_homeassistant_entities: true
-weather_entity: sensor.astro_weather_detail
-decision_entity: sensor.astro_vhodnost_foceni
-moon_entity: sensor.mesic_foceni_predpoved
-satellite_entity: sensor.astro_satelit_oblacnost
-satellite_comparison_entity: sensor.astro_model_satelit_shoda
-```
-
-Názvy lze změnit, ale pokud je změníš, musí stejné entity používat i konfigurace Lovelace karet.
-
-## Dashboard karty a resources
-
-```yaml
-install_dashboard_cards: true
-install_lovelace_resources: true
-```
-
-Doporučené je ponechat obě hodnoty `true`.
-
-Aplikace pak:
-
-1. zapisuje aktuální JavaScript karty do `/config/www`,
-2. zapisuje manifest s aktuálními verzemi,
-3. udržuje stabilní loader `/local/astro-weather-cards-loader.js`,
-4. pokouší se udržet Lovelace resource automaticky.
-
-Ručně se nepřidávají jednotlivé verzované JS soubory.
+Doporučení: názvy entit neměň, pokud pro to nemáš konkrétní důvod. Dokumentace a příklady předpokládají výchozí názvy.
 
 ## Debug
 
-```yaml
-debug: false
-```
+| Parametr | Výchozí | Popis |
+| --- | ---: | --- |
+| `debug` | `false` | Zapne podrobnější diagnostiku a tracebacky v logu. |
 
-Zapni pouze při diagnostice. Běžný provoz má zůstat na `false`, aby log nebyl zbytečně hlučný.
+Zapínej jen při řešení problému; běžně jej nech `false`.
 
-## Doporučená výchozí konfigurace pro observatoř v ČR
+## Doporučený minimální blok konfigurace
+
+Pro typickou českou observatoř stačí po instalaci hlavně správně nastavit lokalitu a EUMETSAT credentials:
 
 ```yaml
 latitude: 48.0000
 longitude: 14.0000
 altitude: 500
-timezone: Europe/Prague
-refresh_minutes: 30
-horizon_hours: 72
-use_moon: true
-use_icon: true
-use_aerosols: true
-use_seeing: true
-spatial_cloud_analysis: true
-spatial_radius_km: 30
-use_satellite: true
-satellite_radius_km: 30
-satellite_refresh_minutes: 10
-moon_horizon_days: 45
-moon_interference_illumination_pct: 15.0
-moon_interference_altitude_deg: 0.0
-min_good_block_hours: 4.0
-max_start_delay_minutes: 120
-prep_minutes: 45
-wind_warn_ms: 8.0
-wind_bad_ms: 12.0
-aod_warn: 0.30
-aod_bad: 0.40
-seeing_warn_arcsec: 1.8
-seeing_bad_arcsec: 2.5
-publish_homeassistant_entities: true
-install_dashboard_cards: true
-install_lovelace_resources: true
-debug: false
+timezone: "Europe/Prague"
+
+eumetsat_consumer_key: "TVUJ_KEY"
+eumetsat_consumer_secret: "TVUJ_SECRET"
 ```
 
-Hodnoty `latitude`, `longitude` a `altitude` v ukázce jsou pouze příklad. Nahraď je skutečnou polohou observatoře.
+Ostatní výchozí hodnoty bych při první instalaci neměnila. Nejdřív nech systém několik nocí běžet a až potom upravuj prahy podle skutečných podmínek své observatoře.
+
+## Doporučené pořadí ladění
+
+Pokud chceš systém přizpůsobit konkrétní technice, měň parametry postupně:
+
+1. lokalita a timezone,
+2. délka požadovaného dobrého bloku,
+3. vítr,
+4. AOD a seeing,
+5. radius prostorové analýzy,
+6. teprve potom skórovací a disagreement prahy.
+
+Neměň několik skupin prahů najednou, jinak bude obtížné poznat, co změnilo verdikt.
