@@ -2,11 +2,11 @@
 
 Tento návod popisuje čistou instalaci Astro Weather jako výchozí stav projektu. Neřeší migraci ze starších verzí.
 
-Uživatelské rozhraní a dokumentace jsou zatím pouze **v češtině**. Projekt je primárně určen pro Českou republiku, protože používá mimo jiné **ČHMÚ ALADIN CZ 1 km**.
+Uživatelské rozhraní a plná dokumentace jsou zatím pouze **v češtině**. Projekt je primárně určen pro Českou republiku, protože používá mimo jiné **ČHMÚ ALADIN CZ 1 km**. Stručný anglický popis projektu je v [README.md](README.md#english-summary).
 
 ## 1. Požadavky
 
-Potřebuješ Home Assistant s podporou Apps/add-ons a jednu z podporovaných architektur:
+Potřebujete Home Assistant s podporou Apps/add-ons a jednu z podporovaných architektur:
 
 ```text
 amd64
@@ -17,25 +17,25 @@ Home Assistant musí mít přístup k internetu pro načítání meteorologický
 
 ## 2. Přidání GitHub repozitáře
 
-V Home Assistantu otevři správu aplikací:
+V Home Assistantu otevřete správu aplikací:
 
 1. **Nastavení → Aplikace / Apps**.
-2. Otevři instalaci / obchod aplikací.
-3. V nabídce `⋮` otevři **Repositories / Repozitáře**.
-4. Přidej:
+2. Otevřete instalaci / obchod aplikací.
+3. V nabídce `⋮` otevřete **Repositories / Repozitáře**.
+4. Přidejte:
 
    ```text
    https://github.com/Z0472/home-assistant-astro-weather
    ```
 
 5. V seznamu aplikací se objeví **Astro Weather Backend**.
-6. Aplikaci nainstaluj.
+6. Aplikaci nainstalujte.
 
 ## 3. Co je nutné nastavit před prvním spuštěním
 
 ### Povinné pro správnou lokalitu
 
-V konfiguraci aplikace změň minimálně:
+V konfiguraci aplikace změňte minimálně:
 
 ```yaml
 latitude: 48.0000
@@ -44,12 +44,12 @@ altitude: 500
 timezone: "Europe/Prague"
 ```
 
-Použij skutečné hodnoty své observatoře.
+Použijte skutečné hodnoty své observatoře.
 
 - `latitude` – zeměpisná šířka v desetinných stupních.
 - `longitude` – zeměpisná délka v desetinných stupních.
 - `altitude` – nadmořská výška v metrech.
-- `timezone` – pro ČR obvykle ponech `Europe/Prague`.
+- `timezone` – pro ČR obvykle ponechte `Europe/Prague`.
 
 Souřadnice mají přímý vliv na:
 
@@ -59,7 +59,7 @@ Souřadnice mají přímý vliv na:
 - polohu a rušení Měsíce,
 - satelitní CLM vzorky a mapový výřez.
 
-Proto neponechávej demonstrační výchozí souřadnice, pokud neodpovídají tvému místu.
+Proto neponechávejte demonstrační výchozí souřadnice, pokud neodpovídají Vašemu místu.
 
 ## 4. EUMETSAT – registrace a API klíče
 
@@ -67,7 +67,7 @@ Proto neponechávej demonstrační výchozí souřadnice, pokud neodpovídají t
 
 Bez EUMETSAT klíčů může karta používat veřejný EUMETView IR obraz, ale nebude mít plnohodnotná kvantitativní data **MTG/FCI Cloud Mask (CLM)**.
 
-Pro CLM nastav:
+Pro CLM nastavte:
 
 ```yaml
 eumetsat_consumer_key: "..."
@@ -76,38 +76,38 @@ eumetsat_consumer_secret: "..."
 
 ### Registrace účtu
 
-1. Otevři EUMETSAT User Portal:
+1. Otevřete EUMETSAT User Portal:
 
    https://user.eumetsat.int/
 
-2. Pokud účet nemáš, zvol **Register – Create new account**.
-3. Dokonči registraci a přihlas se.
+2. Pokud účet nemáte, zvolte **Register – Create new account**.
+3. Dokončete registraci a přihlaste se.
 
 Oficiální EUMETSAT dokumentace uvádí, že pro stahovací API je potřeba registrovaný účet a autentizace pomocí dočasného tokenu vytvořeného z osobních API credentials.
 
 ### Kde najít Consumer key a Consumer secret
 
-Po přihlášení otevři přímo:
+Po přihlášení otevřete přímo:
 
 https://api.eumetsat.int/api-key/
 
-Případně v Data Store / Data Services klikni na své uživatelské jméno a vyber **API Key**.
+Případně v Data Store / Data Services klikněte na své uživatelské jméno a vyberte **API Key**.
 
-Na stránce **API Key Management** najdeš v části **User Credentials**:
+Na stránce **API Key Management** najdete v části **User Credentials**:
 
 - **Consumer key**
 - **Consumer secret**
 
-Klíče jsou standardně skryté; použij funkci pro zobrazení skrytých klíčů.
+Klíče jsou standardně skryté; použijte funkci pro zobrazení skrytých klíčů.
 
-Do Home Assistantu vlož:
+Do Home Assistantu vložte:
 
 ```yaml
-eumetsat_consumer_key: "TVUJ_CONSUMER_KEY"
-eumetsat_consumer_secret: "TVUJ_CONSUMER_SECRET"
+eumetsat_consumer_key: "VAS_CONSUMER_KEY"
+eumetsat_consumer_secret: "VAS_CONSUMER_SECRET"
 ```
 
-### Nevkládej access token
+### Nevkládejte access token
 
 Do Astro Weather se nevkládá ručně generovaný krátkodobý token. Backend si access token vytváří automaticky z `Consumer key` + `Consumer secret` a podle potřeby jej obnovuje.
 
@@ -123,17 +123,17 @@ EUMETSAT umožňuje data procházet i bez registrace, ale stahování vyžaduje 
 
 Pokud backend po správném zadání key/secret hlásí `401` nebo `403`:
 
-1. ověř, že je účet aktivní,
-2. znovu se přihlas do User Portal,
-3. otevři API Key Management a ověř key/secret,
-4. zkontroluj v User Portal sekci datových licencí, zda má účet oprávnění pro požadovaný produkt,
-5. po změně licence se odhlas a znovu přihlas. EUMETSAT uvádí, že zpracování nové licence může trvat až přibližně jednu hodinu a pro aktivaci může být potřeba nové přihlášení.
+1. ověřte, že je účet aktivní,
+2. znovu se přihlaste do User Portal,
+3. otevřete API Key Management a ověřte key/secret,
+4. zkontrolujte v User Portal sekci datových licencí, zda má účet oprávnění pro požadovaný produkt,
+5. po změně licence se odhlaste a znovu přihlaste. EUMETSAT uvádí, že zpracování nové licence může trvat až přibližně jednu hodinu a pro aktivaci může být potřeba nové přihlášení.
 
 `eumetsat_consumer_secret` je v Home Assistant konfiguraci veden jako heslo a backend jej nevystavuje v senzorových atributech ani v běžném logu.
 
 ## 5. Doporučené výchozí nastavení pro ČR
 
-Pro běžnou instalaci doporučuji začít s výchozími hodnotami projektu a změnit pouze lokalitu a EUMETSAT credentials:
+Pro běžnou instalaci je vhodné začít s výchozími hodnotami projektu a změnit pouze lokalitu a EUMETSAT credentials:
 
 ```yaml
 timezone: "Europe/Prague"
@@ -157,9 +157,9 @@ Podrobné vysvětlení všech parametrů je v [KONFIGURACE.md](KONFIGURACE.md).
 
 ## 6. První spuštění
 
-Po uložení konfigurace aplikaci spusť.
+Po uložení konfigurace aplikaci spusťte.
 
-V logu by se postupně měly objevit úspěšné načtené zdroje:
+V logu by se postupně měly objevit úspěšně načtené zdroje:
 
 - MET,
 - ALADIN,
@@ -192,7 +192,7 @@ sensor.astro_aladin_satelit_chyba
 sensor.astro_icon_satelit_chyba
 ```
 
-Pokud základní entity nevzniknou, nejprve zkontroluj log aplikace.
+Pokud základní entity nevzniknou, nejprve zkontrolujte log aplikace.
 
 ## 8. Lovelace resources
 
@@ -208,7 +208,7 @@ V **Nastavení → Dashboardy → Zdroje / Resources** má být pouze jeden Astr
 | --- | --- |
 | `/local/astro-weather-cards-loader.js` | JavaScript module |
 
-Nepřidávej ručně jednotlivé `astro-start-card-vXX.js` nebo `astro-satellite-card-vXX.js`. Loader a manifest se starají o aktuální verzi automaticky.
+Nepřidávejte ručně jednotlivé `astro-start-card-vXX.js` nebo `astro-satellite-card-vXX.js`. Loader a manifest se starají o aktuální verzi automaticky.
 
 ## 9. Přidání karet na dashboard
 
@@ -248,9 +248,9 @@ Rozložení karet je na uživateli. Satelitní karta se hodí například do už
 
 Po instalaci nové verze:
 
-1. nech aplikaci přepsat aktuální soubory do `/config/www`,
-2. otevři dashboard,
-3. pokud prohlížeč drží starou custom kartu, použij `Ctrl+F5`.
+1. nechte aplikaci přepsat aktuální soubory do `/config/www`,
+2. otevřete dashboard,
+3. pokud prohlížeč drží starou custom kartu, použijte `Ctrl+F5`.
 
 Není potřeba měnit Lovelace resource URL, protože zůstává:
 
@@ -260,7 +260,7 @@ Není potřeba měnit Lovelace resource URL, protože zůstává:
 
 ## 11. Kontrola funkce satelitu
 
-Na satelitní kartě sleduj:
+Na satelitní kartě sledujte:
 
 - `CLM HH:mm · před N min` – čas a živě přepočítávané stáří posledního CLM,
 - `Observatoř: jasno / mrak` – středový CLM vzorek,
@@ -270,12 +270,12 @@ Na satelitní kartě sleduj:
 - shodu modelů se satelitem,
 - historii IR snímků přes tlačítko přehrávání a slider.
 
-Pokud vidíš IR obraz, ale CLM je nedostupné, nejčastější příčinou jsou chybějící nebo neplatné EUMETSAT credentials.
+Pokud vidíte IR obraz, ale CLM je nedostupné, nejčastější příčinou jsou chybějící nebo neplatné EUMETSAT credentials.
 
 ## 12. Důležité provozní poznámky
 
 - Astro Weather není bezpečnostní systém pro ochranu střechy nebo techniky.
-- Pro déšť, silný vítr a havarijní stavy používej samostatná bezpečnostní pravidla.
+- Pro déšť, silný vítr a havarijní stavy používejte samostatná bezpečnostní pravidla.
 - Satelitní obraz a modely jsou podpůrné zdroje pro rozhodnutí o focení.
 - Velké pracovní GRIB/satelitní soubory se zpracovávají v RAM, aby se omezily zápisy na úložiště Home Assistantu.
 - Historické IR snímky pro timelapse se nestahují do trvalého archivu na HA disk; karta používá EUMETView WMS a cache prohlížeče.
@@ -284,14 +284,14 @@ Pokud vidíš IR obraz, ale CLM je nedostupné, nejčastější příčinou jsou
 
 ### `Custom element doesn't exist`
 
-Ověř:
+Ověřte:
 
 ```text
-https://TVUJ-HA/local/astro-weather-cards-loader.js
-https://TVUJ-HA/local/astro-weather-cards-manifest.json
+https://VAS-HA/local/astro-weather-cards-loader.js
+https://VAS-HA/local/astro-weather-cards-manifest.json
 ```
 
-Potom zkontroluj resource a použij `Ctrl+F5`.
+Potom zkontrolujte resource a použijte `Ctrl+F5`.
 
 ### ALADIN není dostupný
 
@@ -299,7 +299,7 @@ Projekt je primárně určen pro ČR. Pokud je místo mimo podporovanou oblast A
 
 ### Satelitní CLM není dostupné
 
-Ověř `use_satellite`, key/secret, EUMETSAT účet a případná licenční oprávnění.
+Ověřte `use_satellite`, key/secret, EUMETSAT účet a případná licenční oprávnění.
 
 ### AOD nebo seeing nefunguje
 
