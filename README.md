@@ -1,109 +1,86 @@
 # Home Assistant Astro Weather
 
-Home Assistant app/add-on for astrophotography planning. It combines MET Norway Locationforecast, CHMI ALADIN, DWD ICON, spatial cloud analysis, internal Moon/night calculation, CAMS/Open-Meteo AOD 550 and 7Timer seeing into one operational decision: **SPUSTIT / NEJISTÉ / NESPOUŠTĚT**.
+Astro Weather je Home Assistant App/add-on určený pro rozhodování, zda má smysl spustit astrofotografickou techniku. Kombinuje několik nezávislých meteorologických modelů, astronomickou noc, Měsíc, kvalitu oblohy a aktuální satelitní data do jednoho provozního výsledku:
 
-## Current Version
+**SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
 
-**Astro Weather Backend 12.3.0**
+Aktuální stabilní verze: **12.4.12**.
 
-Version 12.3.0 adds a spatial cloud-neighbourhood layer. The normal point forecast remains the core forecast, but the backend also checks the surroundings of the configured observing site so a slightly misplaced model cloud boundary is less likely to produce an overconfident decision.
+> **Jazyk a oblast použití**
+>
+> Uživatelské rozhraní a dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu.
 
-The spatial layer is intentionally conservative: it may downgrade an otherwise confident result to **NEJISTÉ**, but it never overrides a hard veto and never upgrades a bad forecast directly to **SPUSTIT**.
+## Co aplikace používá
 
-## Main Data Sources
+- **MET Norway Locationforecast** – bodová předpověď počasí, oblačnost, mlha, srážky, teplota, rosný bod a vítr.
+- **ČHMÚ ALADIN CZ 1 km** – regionální vysokorozlišovací oblačnost z GRIB dat.
+- **DWD ICON Seamless / Open-Meteo** – další nezávislý model oblačnosti a prostorová analýza okolí observatoře.
+- **Interní výpočet Měsíce** – astronomická noc, fáze, osvětlení, východ/západ a rušení focení.
+- **CAMS / Open-Meteo Air Quality** – AOD 550 a informativní prašnost/aerosoly.
+- **7Timer ASTRO** – modelový odhad seeingu.
+- **EUMETSAT MTG/FCI** – aktuální satelitní Cloud Mask (CLM), IR10.5 obraz a krátkodobý vizuální/číselný nowcast oblačnosti.
 
-- **MET Norway Locationforecast**: point forecast for general weather, cloud layers, fog, precipitation, temperature, dew point and wind.
-- **CHMI ALADIN**: high-resolution regional cloud forecast from native GRIB data; the backend validates that the configured site is close to the model grid.
-- **DWD ICON Seamless via Open-Meteo**: total/low/mid/high cloud cover and the spatial cloud-neighbourhood forecast.
-- **Internal Moon calculation**: astronomical night, phase, illumination, altitude and hourly interference.
-- **CAMS/Open-Meteo Air Quality**: AOD 550 and informational dust concentration.
-- **7Timer ASTRO**: model seeing estimate.
+SkyAccuracy.cz se nepoužívá.
 
-SkyAccuracy.cz is not used.
+## Jak vzniká rozhodnutí
 
-## Decision Philosophy
+Hlavní rozhodnutí pracuje s konsensem MET + ALADIN + ICON a zároveň zohledňuje:
 
-The dashboard should stay simple even though the backend is not. The user should not have to compare several meteorological websites manually.
+- astronomickou tmu,
+- rušení Měsícem,
+- srážky, mlhu a vítr,
+- AOD,
+- seeing,
+- prostorovou stabilitu oblačnosti v okolí observatoře,
+- dostupnost dostatečně dlouhého kvalitního bloku na začátku noci.
 
-The central decision uses:
+Satelit je v současné verzi používán jako **aktuální pozorovaná realita a kontrola modelů**, nikoliv jako přímý přepis hlavního verdiktu. Díky tomu je vidět, zda modely právě odpovídají tomu, co MTG/FCI skutečně pozoruje nad observatoří a v jejím okolí.
 
-- model consensus from MET / ALADIN / ICON,
-- astronomical darkness and Moon interference,
-- precipitation, fog and wind vetoes,
-- AOD and seeing quality factors,
-- spatial cloud stability around the observing site.
+`Shoda modelů` znamená vzájemnou shodu meteorologických modelů. Není to pravděpodobnost správnosti předpovědi.
 
-`Shoda modelů` means agreement between independent forecast models; it is **not** a calibrated probability that the forecast will be correct.
+## Rychlá instalace
 
-Hard vetoes such as precipitation, strong fog/wind, interfering Moon, bad AOD or bad seeing remain authoritative. A cloud-only `NESPOUŠTĚT` is softened to `NEJISTÉ` when model agreement is weak.
+Podrobný postup je v [INSTALLACE.md](INSTALLACE.md).
 
-## Spatial Cloud Analysis (12.3.0)
+1. V Home Assistant otevři **Nastavení → Aplikace / Apps** a správu repozitářů.
+2. Přidej repozitář:
 
-Spatial analysis is enabled by default:
+   ```text
+   https://github.com/Z0472/home-assistant-astro-weather
+   ```
 
-```yaml
-spatial_cloud_analysis: true
-spatial_radius_km: 30
-```
+3. Nainstaluj **Astro Weather Backend**.
+4. V konfiguraci aplikace nastav minimálně:
+   - `latitude` – zeměpisná šířka observatoře,
+   - `longitude` – zeměpisná délka,
+   - `altitude` – nadmořská výška v metrech,
+   - zkontroluj `timezone` – pro ČR obvykle `Europe/Prague`.
+5. Pokud chceš kvantitativní satelitní CLM data, doplň také:
+   - `eumetsat_consumer_key`,
+   - `eumetsat_consumer_secret`.
+6. Ulož konfiguraci a aplikaci spusť.
+7. Zkontroluj log – měly by se načíst modely, interní Měsíc, kvalita oblohy a případně EUMETSAT CLM.
 
-`spatial_radius_km` can be set from **10 to 50 km**.
+Všechny parametry jsou popsány v [KONFIGURACE.md](KONFIGURACE.md).
 
-The backend samples **17 locations**:
+## EUMETSAT účet a API klíče
 
-- observing site,
-- 8 compass directions at half the configured radius,
-- 8 compass directions at the full radius.
+Pro veřejný IR obraz nejsou klíče nutné. Pro skutečné kvantitativní **MTG/FCI CLM** vzorky je ale potřeba EUMETSAT účet a dvojice **Consumer key / Consumer secret**.
 
-DWD ICON supplies the neighbourhood cloud field in one multi-location request. ALADIN reuses its already downloaded cloud GRIB and samples the same neighbourhood locally. MET remains a point forecast in this version.
+1. Zaregistruj se nebo přihlas na EUMETSAT User Portal:
+   - https://user.eumetsat.int/
+2. Po přihlášení otevři API Key Management:
+   - https://api.eumetsat.int/api-key/
+3. V části **User Credentials** zobraz skryté hodnoty a zkopíruj:
+   - **Consumer key** → `eumetsat_consumer_key`
+   - **Consumer secret** → `eumetsat_consumer_secret`
+4. Do Home Assistantu se nevkládá dočasný access token. Backend si krátkodobý token vytváří automaticky z key + secret.
 
-The backend derives, when enough data are available:
+Podrobnosti a řešení problémů s licencemi jsou v [INSTALLACE.md](INSTALLACE.md#eumetsat--registrace-a-api-klíče) a technické informace o satelitní vrstvě v [SATELLITE.md](SATELLITE.md).
 
-- spatial cloud range and stability,
-- whether the site lies near a cloud boundary,
-- approximate direction and distance of the nearest 50% cloud boundary,
-- whether cloud is approaching or clearing in successive forecast hours,
-- a rough ETA for a meaningful change over the site,
-- dominant ICON cloud layer and pressure-level wind as a consistency check.
+## Home Assistant entity
 
-The card deliberately shows only a compact operational message, for example:
-
-```text
-✓ Okolí stabilně jasné
-☁ Oblačnost přichází ~1 h 15 min od Z
-🌙 Vyjasnění ~45 min
-⚠ Hrana oblačnosti v okolí · ~14 km Z
-```
-
-Detailed diagnostics remain in entity attributes/tooltips rather than cluttering the main card.
-
-## Sunset-to-Sunrise Hourly Strip
-
-The hourly visual strip runs from apparent **sunset to the following sunrise**, so evening clearing or incoming clouds are visible before astronomical darkness begins. The actual photography decision and good-block calculation still use only **astronomical darkness**.
-
-Nighttime cloud icons use nighttime/Moon variants; the hourly night strip does not show a Sun symbol.
-
-## Automatic Install From GitHub
-
-1. In Home Assistant open **Settings -> Apps -> Install app**.
-2. Open the three-dot menu and choose **Repositories**.
-3. Add:
-
-```text
-https://github.com/Z0472/home-assistant-astro-weather
-```
-
-4. Install **Astro Weather Backend**.
-5. Set at least `latitude`, `longitude`, `altitude` and `timezone`.
-6. Leave `use_icon: true` and `spatial_cloud_analysis: true` enabled unless you intentionally want to disable those layers.
-7. Select a spatial radius from 10–50 km; **30 km is the default**.
-8. Start the app and check the log for weather sources, internal Moon and published Home Assistant entities.
-9. Optionally enable **Start on boot**, **Watchdog** and **Auto update**.
-
-Future versions are installed through Home Assistant **Check for updates** / **Auto update**.
-
-## Home Assistant Entities
-
-The app publishes:
+Základní entity:
 
 ```text
 sensor.astro_weather_detail
@@ -111,85 +88,112 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-The central verdict and spatial summary are in `sensor.astro_vhodnost_foceni`.
+Satelitní entity:
 
-## Dashboard Cards
+```text
+sensor.astro_satelit_oblacnost
+sensor.astro_model_satelit_shoda
+sensor.astro_met_satelit_chyba
+sensor.astro_aladin_satelit_chyba
+sensor.astro_icon_satelit_chyba
+```
 
-The app installs the current card modules into `/config/www` and maintains one stable Lovelace resource:
+Nejdůležitější entity jsou:
+
+- `sensor.astro_vhodnost_foceni` – hlavní verdikt a detail vyhodnocených nocí,
+- `sensor.astro_satelit_oblacnost` – aktuální CLM stav nad observatoří, regionální oblačnost a nowcast,
+- `sensor.astro_model_satelit_shoda` – okamžité porovnání modelového konsensu se satelitní realitou.
+
+## Dashboard karty
+
+Aplikace automaticky kopíruje aktuální JavaScript karty do `/config/www` a používá jeden stabilní Lovelace resource:
 
 ```text
 /local/astro-weather-cards-loader.js
 ```
 
-Current entry modules are:
+V **Nastavení → Dashboardy → Zdroje / Resources** má být pro Astro Weather pouze tento jeden resource typu **JavaScript module**. Jednotlivé verzované soubory karet se jako resources ručně nepřidávají.
 
-```text
-/config/www/astro-start-card-v26.js
-/config/www/moon-forecast-card-v25.js
-/config/www/astro-weather-cards-loader.js
-/config/www/astro-weather-cards-manifest.json
-```
-
-Dependency modules for older card layers are installed automatically. Do **not** add individual versioned cards as Lovelace resources.
-
-In **Settings -> Dashboards -> Resources** there should be exactly one Astro Weather resource:
-
-| URL | Resource type |
-| --- | --- |
-| `/local/astro-weather-cards-loader.js` | JavaScript module |
-
-After an upgrade use **Ctrl+F5** if the browser still displays an already cached custom element.
-
-## Dashboard Card YAML
-
-Both cards in one vertical stack:
+Příklad tří samostatných karet:
 
 ```yaml
-type: vertical-stack
-cards:
-  - type: custom:astro-start-card
-    decision_entity: sensor.astro_vhodnost_foceni
-    weather_entity: sensor.astro_weather_detail
-    moon_entity: sensor.mesic_foceni_predpoved
-    days: 3
-
-  - type: custom:moon-forecast-card
-    entity: sensor.mesic_foceni_predpoved
-    weather_entity: sensor.astro_weather_detail
-    decision_entity: sensor.astro_vhodnost_foceni
-    days: 45
+# Hlavní rozhodovací karta
+type: custom:astro-start-card
+decision_entity: sensor.astro_vhodnost_foceni
+weather_entity: sensor.astro_weather_detail
+moon_entity: sensor.mesic_foceni_predpoved
+days: 3
 ```
 
-## Cloud Model Consensus
+```yaml
+# Satelitní karta
+type: custom:astro-satellite-card
+satellite_entity: sensor.astro_satelit_oblacnost
+comparison_entity: sensor.astro_model_satelit_shoda
+show_clm_map: true
+show_image: true
+```
 
-With three independent model values the cloud consensus uses a robust median/spread approach rather than fixed arbitrary model weights. A tight pair can resist one distant outlier; a broad conflict reduces model agreement and can make the result uncertain.
+```yaml
+# Dlouhodobější přehled Měsíce
+type: custom:moon-forecast-card
+entity: sensor.mesic_foceni_predpoved
+weather_entity: sensor.astro_weather_detail
+decision_entity: sensor.astro_vhodnost_foceni
+days: 45
+```
 
-When ICON is unavailable, the proven MET + ALADIN two-model path remains available. When ALADIN is unavailable outside its supported region, MET + ICON can continue. The optional AOD, seeing and spatial layers are fail-open: failure of an advisory source must not crash the base forecast.
+Po aktualizaci aplikace použij `Ctrl+F5`, pokud prohlížeč stále zobrazuje starou verzi custom karty.
 
-## Troubleshooting
+## Co zobrazuje satelitní karta
 
-If the dashboard says `Custom element doesn't exist: astro-start-card`, verify that these URLs open in the same Home Assistant browser session:
+Satelitní karta rozlišuje dvě různé veličiny:
+
+- **Observatoř: jasno / mrak** – středový CLM vzorek přímo nad observatoří.
+- **Okolí 30 km: N % oblačných CLM vzorků** – podíl oblačných bodů z prostorového vzorkování v okolí.
+
+Dále obsahuje:
+
+- krátkodobý `TEĎ / +1 h / +2 h / +3 h` nowcast okolí,
+- IR10.5 obraz o okolí observatoře,
+- CLM body a 15/30km kruhy,
+- shodu modelů se satelitem přímo nad observatoří,
+- přehrávání přibližně posledních tří hodin IR historie pomocí EUMETView WMS `time=`.
+
+Historické JPEGy se neukládají na disk Home Assistantu; timelapse používá historický WMS a cache prohlížeče.
+
+## Prostorová analýza oblačnosti
+
+Ve výchozím nastavení:
+
+```yaml
+spatial_cloud_analysis: true
+spatial_radius_km: 30
+```
+
+Backend vyhodnocuje okolí observatoře, aby jediný bod předpovědi nebyl příliš citlivý na mírně posunutou hranu oblačnosti. Sleduje mimo jiné stabilitu okolí, směr hrany oblačnosti a trend zatahování/vyjasňování.
+
+Prostorová analýza je konzervativní: může jistý výsledek znejistit, ale nemá obcházet tvrdé bezpečnostní veto.
+
+## Ochrana úložiště Home Assistantu
+
+Velké satelitní a GRIB pracovní soubory se zpracovávají v RAM (`/dev/shm`) a po zpracování se mažou. Cílem je zabránit zbytečným opakovaným zápisům na SD kartu nebo SSD Home Assistantu.
+
+Na disk se neukládá archiv plných satelitních snímků. Satelitní historie v UI se načítá přímo z EUMETView.
+
+## Dokumentace
+
+- [INSTALLACE.md](INSTALLACE.md) – instalace od čistého Home Assistantu, EUMETSAT registrace a první spuštění.
+- [KONFIGURACE.md](KONFIGURACE.md) – všechny konfigurační parametry a jejich význam.
+- [SATELLITE.md](SATELLITE.md) – technický popis satelitní vrstvy, CLM, IR10.5 a timelapse.
+
+## Podporované architektury
 
 ```text
-https://YOUR-HA/local/astro-weather-cards-loader.js
-https://YOUR-HA/local/astro-weather-cards-manifest.json
-https://YOUR-HA/local/astro-start-card-v26.js
-https://YOUR-HA/local/moon-forecast-card-v25.js
+amd64
+aarch64
 ```
 
-Keep only `/local/astro-weather-cards-loader.js` as the Astro Lovelace resource, then use **Ctrl+F5**.
+## Stav projektu
 
-If the spatial layer is unavailable, the base forecast continues. Check the app log for `PROSTOR ICON VAROVANI` or `PROSTOR ALADIN VAROVANI`.
-
-## Development Checks
-
-GitHub Actions compile all Python modules, validate card JavaScript syntax, run the stable regression suites plus spatial-cloud tests, and build the Home Assistant container.
-
-Important local checks include:
-
-```bash
-python3 -m py_compile astro_weather_backend/spatial_cloud_patch.py
-python3 -m unittest -v tests/test_spatial_cloud_patch.py
-python3 -m unittest -v tests/test_release_wiring.py
-node --check astro_weather_backend/cards/astro-start-card-v26.js
-```
+Projekt je aktivně vyvíjen pro praktické řízení amatérské observatoře. Výstup je pomůcka pro provozní rozhodnutí, nikoliv bezpečnostní meteorologický systém. Pro ochranu techniky je vhodné zachovat samostatná hardwarová a Home Assistant bezpečnostní pravidla pro déšť, vítr, střechu a další kritické stavy.
