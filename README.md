@@ -10,7 +10,7 @@ Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nej
 
 > **Jazyk a oblast použití**
 >
-> Uživatelské rozhraní a dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu.
+> Uživatelské rozhraní a plná dokumentace jsou zatím pouze v češtině. Projekt je primárně určen a testován pro Českou republiku, protože jedním z hlavních modelů je **ČHMÚ ALADIN CZ 1 km**. MET Norway, DWD ICON a EUMETSAT mají širší pokrytí, ale mimo oblast ALADINu nemusí být dostupné všechny tři modely a provoz mimo ČR zatím není hlavní cílový scénář projektu. Stručný anglický popis projektu je uveden níže.
 
 ## Dokumentace
 
@@ -27,8 +27,6 @@ Aktuální dokumentace popisuje současný stav projektu jako výchozí bod. Nej
 - **CAMS / Open-Meteo Air Quality** – AOD 550 a informativní prašnost/aerosoly.
 - **7Timer ASTRO** – modelový odhad seeingu.
 - **EUMETSAT MTG/FCI** – aktuální satelitní Cloud Mask (CLM), IR10.5 obraz a krátkodobý vizuální/číselný nowcast oblačnosti.
-
-SkyAccuracy.cz se nepoužívá.
 
 ## Jak vzniká rozhodnutí
 
@@ -50,24 +48,24 @@ Satelit je v současné verzi používán jako **aktuální pozorovaná realita 
 
 Podrobný postup je v [INSTALACE.md](INSTALACE.md).
 
-1. V Home Assistant otevři **Nastavení → Aplikace / Apps** a správu repozitářů.
-2. Přidej repozitář:
+1. V Home Assistantu otevřete **Nastavení → Aplikace / Apps** a správu repozitářů.
+2. Přidejte repozitář:
 
    ```text
    https://github.com/Z0472/home-assistant-astro-weather
    ```
 
-3. Nainstaluj **Astro Weather Backend**.
-4. V konfiguraci aplikace nastav minimálně:
+3. Nainstalujte **Astro Weather Backend**.
+4. V konfiguraci aplikace nastavte minimálně:
    - `latitude` – zeměpisná šířka observatoře,
    - `longitude` – zeměpisná délka,
    - `altitude` – nadmořská výška v metrech,
-   - zkontroluj `timezone` – pro ČR obvykle `Europe/Prague`.
-5. Pokud chceš kvantitativní satelitní CLM data, doplň také:
+   - zkontrolujte `timezone` – pro ČR obvykle `Europe/Prague`.
+5. Pokud chcete kvantitativní satelitní CLM data, doplňte také:
    - `eumetsat_consumer_key`,
    - `eumetsat_consumer_secret`.
-6. Ulož konfiguraci a aplikaci spusť.
-7. Zkontroluj log – měly by se načíst modely, interní Měsíc, kvalita oblohy a případně EUMETSAT CLM.
+6. Uložte konfiguraci a aplikaci spusťte.
+7. Zkontrolujte log – měly by se načíst modely, interní Měsíc, kvalita oblohy a případně EUMETSAT CLM.
 
 Všechny parametry jsou popsány v [KONFIGURACE.md](KONFIGURACE.md).
 
@@ -75,11 +73,11 @@ Všechny parametry jsou popsány v [KONFIGURACE.md](KONFIGURACE.md).
 
 Pro veřejný IR obraz nejsou klíče nutné. Pro skutečné kvantitativní **MTG/FCI CLM** vzorky je ale potřeba EUMETSAT účet a dvojice **Consumer key / Consumer secret**.
 
-1. Zaregistruj se nebo přihlas na EUMETSAT User Portal:
+1. Zaregistrujte se nebo se přihlaste na EUMETSAT User Portal:
    - https://user.eumetsat.int/
-2. Po přihlášení otevři API Key Management:
+2. Po přihlášení otevřete API Key Management:
    - https://api.eumetsat.int/api-key/
-3. V části **User Credentials** zobraz skryté hodnoty a zkopíruj:
+3. V části **User Credentials** zobrazte skryté hodnoty a zkopírujte:
    - **Consumer key** → `eumetsat_consumer_key`
    - **Consumer secret** → `eumetsat_consumer_secret`
 4. Do Home Assistantu se nevkládá dočasný access token. Backend si krátkodobý token vytváří automaticky z key + secret.
@@ -152,7 +150,7 @@ decision_entity: sensor.astro_vhodnost_foceni
 days: 45
 ```
 
-Po aktualizaci aplikace použij `Ctrl+F5`, pokud prohlížeč stále zobrazuje starou verzi custom karty.
+Po aktualizaci aplikace použijte `Ctrl+F5`, pokud prohlížeč stále zobrazuje starou verzi custom karty.
 
 ## Co zobrazuje satelitní karta
 
@@ -198,3 +196,29 @@ aarch64
 ## Stav projektu
 
 Projekt je aktivně vyvíjen pro praktické řízení amatérské observatoře. Výstup je pomůcka pro provozní rozhodnutí, nikoliv bezpečnostní meteorologický systém. Pro ochranu techniky je vhodné zachovat samostatná hardwarová a Home Assistant bezpečnostní pravidla pro déšť, vítr, střechu a další kritické stavy.
+
+---
+
+## English summary
+
+**Astro Weather** is a Home Assistant App/Add-on designed to answer one practical astrophotography question: **is it worth starting and cooling the imaging equipment tonight?**
+
+It combines several independent weather models with astronomical darkness, Moon interference, sky-quality indicators and current satellite observations into one operational result:
+
+**START / UNCERTAIN / DO NOT START**
+
+The project currently focuses primarily on the **Czech Republic**, because one of its core forecast sources is the regional **CHMI ALADIN CZ 1 km** model. MET Norway, DWD ICON and EUMETSAT have wider coverage, but operation outside the ALADIN area is not currently the primary supported scenario.
+
+The main data sources are:
+
+- MET Norway Locationforecast,
+- CHMI ALADIN CZ 1 km,
+- DWD ICON Seamless via Open-Meteo,
+- internal astronomical-night and Moon calculations,
+- CAMS / Open-Meteo AOD 550,
+- 7Timer ASTRO seeing,
+- EUMETSAT MTG/FCI Cloud Mask and IR10.5 imagery.
+
+The backend evaluates model agreement, cloud development during astronomical darkness, precipitation, fog, wind, Moon interference, aerosols, seeing and the spatial stability of clouds around the observatory. The satellite layer provides observed current conditions, model-vs-satellite comparison, a short regional nowcast and an IR history player.
+
+The user interface and full installation/configuration documentation are currently available **in Czech only**. This English section is intentionally limited to a project overview.
