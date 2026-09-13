@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.12 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.13 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -169,7 +169,7 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertNotIn("/data/cache", source)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.12")
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.13")
         self.assertEqual(ui.ASTRO_CARD_VERSION, 35)
         self.assertEqual(ui.SATELLITE_CARD_VERSION, 9)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
