@@ -1,4 +1,4 @@
-"""Regression tests for Astro Weather 12.4.9 satellite/main-card UI refinements."""
+"""Regression tests for Astro Weather 12.4.10 satellite/main-card UI refinements."""
 import math
 import sys
 import unittest
@@ -108,6 +108,19 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("Regionální 30km podíl", source)
         self.assertIn("_localSatelliteComparisonV33", source)
 
+    def test_main_card_v34_compacts_spatial_and_moon_rows(self):
+        source = (ROOT / "astro_weather_backend/cards/astro-start-card-v34.js").read_text(encoding="utf-8")
+        self.assertIn('import "/local/astro-start-card-v33.js";', source)
+        self.assertIn("spatial-compact-row-v34", source)
+        self.assertIn("current-spatial-panel", source)
+        self.assertIn("spatial-cloud-panel", source)
+        self.assertIn("grid-template-columns:repeat(2,minmax(0,1fr))", source)
+        self.assertIn(".moon-panel", source)
+        self.assertIn(".moon-meta", source)
+        self.assertIn("grid-template-columns:minmax(240px,.75fr) minmax(0,1.8fr)", source)
+        self.assertIn("@media (max-width:760px)", source)
+        self.assertIn("_compactDetailLayoutV34", source)
+
     def test_satellite_card_v5_separates_live_clm_age_and_ir_refresh(self):
         v5 = (ROOT / "astro_weather_backend/cards/astro-satellite-card-v5.js").read_text(encoding="utf-8")
         self.assertIn("CLM ${this._time(asOf)} · před ${age} min", v5)
@@ -131,8 +144,8 @@ class SatelliteUiPatchTests(unittest.TestCase):
         self.assertIn("_localVsAreaV8", source)
 
     def test_release_constants(self):
-        self.assertEqual(ui.RELEASE_VERSION, "12.4.9")
-        self.assertEqual(ui.ASTRO_CARD_VERSION, 33)
+        self.assertEqual(ui.RELEASE_VERSION, "12.4.10")
+        self.assertEqual(ui.ASTRO_CARD_VERSION, 34)
         self.assertEqual(ui.SATELLITE_CARD_VERSION, 8)
         self.assertEqual(ui.VISUAL_RADIUS_KM, 150.0)
         self.assertEqual(ui.VISUAL_SIZE_PX, 900)
