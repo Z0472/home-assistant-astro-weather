@@ -228,4 +228,10 @@ aarch64
 
 Projekt je aktivně vyvíjen pro praktické řízení amatérské observatoře. Výstup je pomůcka pro provozní rozhodnutí, nikoliv bezpečnostní meteorologický systém. Pro ochranu techniky je vhodné zachovat samostatná hardwarová a Home Assistant bezpečnostní pravidla pro déšť, vítr, střechu a další kritické stavy.
 
+## Licence
+
+Projekt je distribuován pod licencí **GNU General Public License v3.0 (GPL-3.0-only)**. Zdrojový kód můžete používat, studovat, upravovat a dále šířit za podmínek GPLv3. Pokud distribuujete upravenou nebo odvozenou verzi, musí být příslušný zdrojový kód zpřístupněn příjemcům pod stejnou licencí.
+
+Úplné znění licence je v souboru [LICENSE](LICENSE).
+
 ---
