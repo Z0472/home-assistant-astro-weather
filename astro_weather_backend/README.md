@@ -1,10 +1,42 @@
-# Astro Weather Backend 12.3.0
+# Astro Weather Backend
 
-Home Assistant app/add-on for operational astrophotography weather decisions.
+Home Assistant App/Add-on pro provozní rozhodování o astrofotografické noci.
 
-## Main Behavior
+Backend kombinuje:
 
-The backend publishes:
+- MET Norway Locationforecast,
+- ČHMÚ ALADIN,
+- DWD ICON,
+- prostorovou analýzu oblačnosti,
+- interní výpočet astronomické noci a Měsíce,
+- CAMS/Open-Meteo AOD,
+- 7Timer seeing,
+- EUMETSAT MTG/FCI Cloud Mask a IR10.5.
+
+Výsledkem je jeden hlavní verdikt:
+
+**SPUSTIT / NEJISTÉ / NESPOUŠTĚT**
+
+> UI i dokumentace jsou zatím pouze česky. Projekt je primárně zaměřen na observatoře v České republice kvůli použití regionálního modelu ČHMÚ ALADIN.
+
+## Instalace
+
+Repozitář pro Home Assistant:
+
+```text
+https://github.com/Z0472/home-assistant-astro-weather
+```
+
+Po instalaci nastav skutečnou polohu observatoře:
+
+```yaml
+latitude: 48.0000
+longitude: 14.0000
+altitude: 500
+timezone: Europe/Prague
+```
+
+Potom aplikaci spusť a zkontroluj vytvoření entit:
 
 ```text
 sensor.astro_weather_detail
@@ -12,120 +44,55 @@ sensor.astro_vhodnost_foceni
 sensor.mesic_foceni_predpoved
 ```
 
-The decision combines MET Norway, CHMI ALADIN, DWD ICON, internal Moon/astronomical-night calculation, CAMS/Open-Meteo AOD and 7Timer seeing. Version 12.3.0 additionally checks the spatial cloud neighbourhood around the observing site.
+Pro kvantitativní EUMETSAT CLM doplň také consumer key a consumer secret.
 
-## Spatial Cloud Analysis
+## Dokumentace
 
-Enabled by default:
+Kompletní dokumentace je v kořeni repozitáře:
 
-```yaml
-spatial_cloud_analysis: true
-spatial_radius_km: 30
-```
-
-Supported radius: **10–50 km**.
-
-The backend creates a 17-point sampling pattern:
-
-- centre,
-- 8 compass directions at R/2,
-- 8 compass directions at R.
-
-DWD ICON cloud fields are requested for all points together. ALADIN reuses the already downloaded total-cloud GRIB and samples the same points locally. MET remains the centre point source in 12.3.0.
-
-The spatial layer estimates:
-
-- cloud range/stability around the site,
-- nearby 50% cloud boundary,
-- boundary distance and direction,
-- incoming cloud or clearing trend,
-- rough ETA of a significant change,
-- dominant ICON cloud layer and pressure-level wind consistency.
-
-This layer is conservative. It can turn an otherwise confident result into `NEJISTÉ`, but it does not override a hard veto and does not upgrade a bad forecast directly to `SPUSTIT`.
-
-## Decision Safety
-
-Hard vetoes remain precipitation, strong fog, excessive wind, Moon interference and configured bad AOD/seeing thresholds.
-
-`Shoda modelů` is forecast-model agreement, not a calibrated probability of correctness. A cloud-only `NESPOUŠTĚT` can be softened to `NEJISTÉ` when model agreement is below 60% and no hard veto is present.
-
-The hourly display covers sunset to sunrise. Good-block and operational decision calculations still use astronomical darkness only.
-
-## Data Sources
-
-- MET Norway Locationforecast: cloud cover/layers, fog, precipitation, temperature, dew point and wind.
-- CHMI ALADIN open data: low/mid/high/total cloud cover; spatial analysis uses total cloud.
-- DWD ICON Seamless via Open-Meteo: cloud layers, spatial neighbourhood and pressure-level wind consistency.
-- Internal Moon calculation: astronomical night, phase, illumination, altitude and hourly interference.
-- Open-Meteo Air Quality: CAMS AOD 550 and informational dust concentration.
-- 7Timer ASTRO: seeing estimate.
-
-SkyAccuracy.cz is not used.
-
-## Default Quality Rules
-
-AOD:
-
-- up to `0.10`: no penalty,
-- above `0.10`: gradual score penalty,
-- from `0.30`: uncertainty,
-- from `0.40`: bad hour.
-
-Seeing:
-
-- below `1.8"`: no penalty,
-- from `1.8"`: lowers score / increases uncertainty,
-- from `2.5"`: can remove an hour from a good block.
-
-Moon:
-
-- calculated internally,
-- default interference starts at illumination >= `15 %` while the Moon is above the configured altitude threshold.
-
-## Install / Update
-
-Install from the Home Assistant App/Add-on Store repository:
-
-```text
-https://github.com/Z0472/home-assistant-astro-weather
-```
-
-Set at least:
-
-```yaml
-latitude: 50.0755
-longitude: 14.4378
-altitude: 250
-timezone: Europe/Prague
-```
-
-Use the real observing-site values, then start the app. `spatial_radius_km: 30` is the default and may be changed from 10 to 50 km.
+- [Instalace](../INSTALACE.md)
+- [Konfigurace](../KONFIGURACE.md)
+- [Satelit EUMETSAT](../SATELLITE.md)
+- [Přehled projektu](../README.md)
 
 ## Dashboard
 
-The app writes current card modules into `/config/www` and maintains the stable Lovelace resource:
+Aplikace automaticky instaluje custom cards a udržuje stabilní Lovelace resource:
 
 ```text
 /local/astro-weather-cards-loader.js
 ```
 
-Current entry modules:
+Do Resources nepřidávej jednotlivé verzované JavaScript soubory.
 
-```text
-/config/www/astro-start-card-v26.js
-/config/www/moon-forecast-card-v25.js
+Hlavní karta:
+
+```yaml
+type: custom:astro-start-card
+decision_entity: sensor.astro_vhodnost_foceni
+weather_entity: sensor.astro_weather_detail
+moon_entity: sensor.mesic_foceni_predpoved
+days: 3
 ```
 
-The main card intentionally presents only a short spatial message; detailed diagnostics stay in attributes/tooltips.
+Satelitní karta:
 
-After an upgrade use `Ctrl+F5` if the browser still shows an older custom element.
-
-## Development Checks
-
-```bash
-python3 -m py_compile astro_weather_backend/spatial_cloud_patch.py
-python3 -m unittest -v tests/test_spatial_cloud_patch.py
-python3 -m unittest -v tests/test_release_wiring.py
-node --check astro_weather_backend/cards/astro-start-card-v26.js
+```yaml
+type: custom:astro-satellite-card
+satellite_entity: sensor.astro_satelit_oblacnost
+comparison_entity: sensor.astro_model_satelit_shoda
+show_clm_map: true
+show_image: true
 ```
+
+Měsíční karta:
+
+```yaml
+type: custom:moon-forecast-card
+entity: sensor.mesic_foceni_predpoved
+weather_entity: sensor.astro_weather_detail
+decision_entity: sensor.astro_vhodnost_foceni
+days: 45
+```
+
+Pokud po aktualizaci prohlížeč drží starou verzi custom card, proveď jednou `Ctrl+F5`.
