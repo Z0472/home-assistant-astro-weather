@@ -92,9 +92,14 @@ def _hours_to_start(core: Any, night: dict[str, Any] | None) -> float | None:
     return (start - core.utc_now()).total_seconds() / 3600.0
 
 
-def _spatial_policy_wrapper(original: Any, core: Any):
-    def apply(options: dict[str, Any], result: dict[str, Any], spatial_info: dict[str, Any]) -> None:
-        hours = _hours_to_start(core, result)
+def _spatial_policy_wrapper(original: Any):
+    def apply(
+        core_arg: Any,
+        options: dict[str, Any],
+        result: dict[str, Any],
+        spatial_info: dict[str, Any],
+    ) -> None:
+        hours = _hours_to_start(core_arg, result)
         role = "active"
         if hours is not None and hours > SPATIAL_DECISION_HORIZON_HOURS:
             role = "informational"
@@ -105,12 +110,12 @@ def _spatial_policy_wrapper(original: Any, core: Any):
 
         if role == "informational":
             result["spatialDecisionNote"] = (
-                f"Prostorova predpoved okoli je {hours:.1f} h pred startem pouze informativni; "
-                "verdikt zatim nemeni."
+                f"Prostorová předpověď okolí je {hours:.1f} h před startem pouze informativní; "
+                "verdikt zatím nemění."
             )
             return
 
-        original(core, options, result, spatial_info)
+        original(core_arg, options, result, spatial_info)
 
     return apply
 
@@ -153,6 +158,7 @@ def _baseline_for(decision: dict[str, Any], *, fresh: bool = False) -> dict[str,
             for night in daily:
                 if isinstance(night, dict):
                     night.pop("satelliteDecisionPolicy", None)
+                    night.pop("satelliteAdjusted", None)
         _BASELINE_GENERATED_AT = generated
         _BASELINE_DECISION = base
     return _copy(_BASELINE_DECISION)
@@ -160,20 +166,20 @@ def _baseline_for(decision: dict[str, Any], *, fresh: bool = False) -> dict[str,
 
 def _policy_note(role: str, hours: float | None, comparison: dict[str, Any]) -> str:
     if hours is None:
-        return "Cas do startu nelze spolehlive urcit; satelit zustava pouze informativni."
+        return "Čas do startu nelze spolehlivě určit; satelit zůstává pouze informativní."
     if role == "informational":
-        return f"Do startu zbyva {hours:.1f} h; satelit je zatim pouze aktualni kontrola a verdikt nemeni."
+        return f"Do startu zbývá {hours:.1f} h; satelit je zatím pouze aktuální kontrola a verdikt nemění."
     if role == "confidence":
         agreement = _safe(comparison.get("agreement_pct"))
         if agreement is None:
-            return f"Do startu zbyva {hours:.1f} h; satelit slouzi jen jako kontrola duvery a verdikt nemeni."
+            return f"Do startu zbývá {hours:.1f} h; satelit slouží jen jako kontrola důvěry a verdikt nemění."
         return (
-            f"Do startu zbyva {hours:.1f} h; aktualni shoda satelit-modely je {agreement:.0f} %, "
-            "ale satelit v tomto horizontu verdikt nemeni."
+            f"Do startu zbývá {hours:.1f} h; aktuální shoda satelit–modely je {agreement:.0f} %, "
+            "ale satelit v tomto horizontu verdikt nemění."
         )
     if role == "nowcast":
-        return f"Do startu zbyva {hours:.1f} h; kratky satelitni nowcast uz muze znejistit SPUSTIT."
-    return f"Do startu zbyva {max(0.0, hours):.1f} h; aktualni satelit ma vysokou rozhodovaci vahu."
+        return f"Do startu zbývá {hours:.1f} h; krátký satelitní nowcast už může znejistit SPUSTIT."
+    return f"Do startu zbývá {max(0.0, hours):.1f} h; aktuální satelit má vysokou rozhodovací váhu."
 
 
 def _apply_satellite_policy(
@@ -220,7 +226,7 @@ def _apply_satellite_policy(
 
     if role == "unavailable":
         policy["note"] = (
-            "Satelitni CLM neni cerstve dostupne; chybejici satelitni data verdikt nemeni."
+            "Satelitní CLM není čerstvě dostupné; chybějící satelitní data verdikt nemění."
         )
         out["satelliteDecisionPolicy"] = policy
         if night is not None:
@@ -262,9 +268,9 @@ def _apply_satellite_policy(
         ):
             risky = True
             reason = (
-                f"Satelitni nowcast pro dobu startu odhaduje asi {projected:.0f} % oblacnosti, "
-                f"zatimco modelovy konsensus {model_cloud:.0f} %. Do startu zbyva {effective_hours:.1f} h; "
-                "pred chlazenim zkontroluj aktualni satelit a kamery."
+                f"Satelitní nowcast pro dobu startu odhaduje asi {projected:.0f} % oblačnosti, "
+                f"zatímco modelový konsensus {model_cloud:.0f} %. Do startu zbývá {effective_hours:.1f} h; "
+                "před chlazením zkontroluj aktuální satelit a kamery."
             )
 
     elif role == "strong":
@@ -282,12 +288,12 @@ def _apply_satellite_policy(
         )
         risky = (cloudy_now or cloudy_at_start) and not convincing_clearing
         if risky:
-            local_text = "mrak" if center is not None and center >= 50.0 else "jasno/nejiste"
+            local_text = "mrak" if center is not None and center >= 50.0 else "jasno/nejisté"
             area_text = "—" if area is None else f"{area:.0f} %"
             reason = (
-                f"Do startu zbyva jen {effective_hours:.1f} h. Satelit nyni ukazuje nad observatori {local_text} "
-                f"a v okoli {area_text} oblacnych vzorku; nevidim dost presvedcive vyjasnovani. "
-                "Pred chlazenim nebo otevrenim strechy zkontroluj kamery."
+                f"Do startu zbývá jen {effective_hours:.1f} h. Satelit nyní ukazuje nad observatoří {local_text} "
+                f"a v okolí {area_text} oblačných vzorků; není vidět dost přesvědčivé vyjasňování. "
+                "Před chlazením nebo otevřením střechy zkontroluj kamery."
             )
 
     if risky:
@@ -333,7 +339,7 @@ def install(core: Any) -> None:
     old_inject = sat._inject_states
     old_spatial_apply = spatial._apply_to_decision
 
-    spatial._apply_to_decision = _spatial_policy_wrapper(old_spatial_apply, core)
+    spatial._apply_to_decision = _spatial_policy_wrapper(old_spatial_apply)
 
     def load_options() -> dict[str, Any]:
         global _LAST_OPTIONS
