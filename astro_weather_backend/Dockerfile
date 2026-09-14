@@ -8,7 +8,7 @@ LABEL \
   io.hass.type="app" \
   io.hass.arch="${BUILD_ARCH}"
 
-# ecCodes is reused for CHMI ALADIN and EUMETSAT MTG/FCI Cloud Mask GRIB-2.
+# ecCodes is reused for CHMI ALADIN and lightweight EUMETSAT MTG/FCI GRIB-2 metadata.
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
     && apk add --no-cache \
        python3 \
@@ -36,6 +36,7 @@ COPY satellite_card_map_patch.py /app/satellite_card_map_patch.py
 COPY satellite_lowload_patch.py /app/satellite_lowload_patch.py
 COPY satellite_index_sampler_patch.py /app/satellite_index_sampler_patch.py
 COPY satellite_ui_patch.py /app/satellite_ui_patch.py
+COPY satellite_lowmem_patch.py /app/satellite_lowmem_patch.py
 COPY app.py /app/app.py
 COPY cards /app/cards
 
