@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Astro Weather Backend 12.4.15 entrypoint."""
+"""Astro Weather Backend 12.4.16 entrypoint."""
 import astro_weather_backend as core
 import model_runtime
 import confidence_patch
@@ -17,6 +17,7 @@ import satellite_lowload_patch
 import satellite_index_sampler_patch
 import satellite_ui_patch
 import satellite_lowmem_patch
+import satellite_group_patch
 
 model_runtime.install(core)
 confidence_patch.install(core)
@@ -34,6 +35,7 @@ satellite_lowload_patch.install(core)
 satellite_index_sampler_patch.install(core)
 satellite_ui_patch.install(core)
 satellite_lowmem_patch.install(core)
+satellite_group_patch.install(core)
 
 if __name__ == "__main__":
     core.main()

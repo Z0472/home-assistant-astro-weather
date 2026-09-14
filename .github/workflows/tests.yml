@@ -36,6 +36,7 @@ jobs:
           python -m py_compile astro_weather_backend/satellite_index_sampler_patch.py
           python -m py_compile astro_weather_backend/satellite_ui_patch.py
           python -m py_compile astro_weather_backend/satellite_lowmem_patch.py
+          python -m py_compile astro_weather_backend/satellite_group_patch.py
           python -m py_compile astro_weather_backend/app.py
       - name: Check card JavaScript syntax
         run: |
@@ -95,7 +96,9 @@ jobs:
         run: python -m unittest -v tests/test_satellite_ui_patch.py
       - name: Satellite bounded-memory regression suite
         run: python -m unittest -v tests/test_satellite_lowmem_patch.py
+      - name: Satellite operational-group regression suite
+        run: python -m unittest -v tests/test_satellite_group_patch.py
       - name: Release wiring regression suite
         run: python -m unittest -v tests/test_release_wiring.py
       - name: Build Home Assistant app container
-        run: docker build --build-arg BUILD_VERSION=12.4.15 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
+        run: docker build --build-arg BUILD_VERSION=12.4.16 --build-arg BUILD_ARCH=amd64 -f astro_weather_backend/Dockerfile astro_weather_backend
