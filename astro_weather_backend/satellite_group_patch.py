@@ -1,14 +1,17 @@
-"""Operational second-order group fix for Astro Weather Backend 12.4.16.
+"""Operational FCI template-50002 fixes for Astro Weather Backend 12.4.17.
 
-EUMETSAT's current MTG/FCI CLM GRIB2 template 5.50002 can legitimately contain
-hundreds of thousands of second-order groups. Release 12.4.15 inherited an
-internal ecCodes *packing* limit (65534) as a decoder validation limit and
-therefore rejected a real operational product with numberOfGroups=436159.
+Two assumptions in the first low-memory decoder were wrong for the real
+EUMETSAT product:
 
-This patch removes that incorrect decoder limit while keeping hard memory
-bounds. The three descriptor vectors are stored in compact unsigned-64 arrays
-instead of Python int lists, so the observed 436159-group product needs only
-about 10 MiB for the decoded descriptor vectors rather than tens of MiB.
+* numberOfGroups is a 32-bit field and can legitimately be much larger than
+  ecCodes' internal encoder optimisation limit of 65534;
+* SPD is an array key. ``grib_get -p SPD`` uses a scalar getter and therefore
+  fails with "Passed array is too small" even though the GRIB is valid.
+
+This patch keeps the bounded-memory decoder, accepts operational group counts,
+stores descriptor vectors compactly, and reads the tiny SPD descriptor directly
+from Section 5 according to GRIB2 template 5.50002. No full-field ecCodes value
+decode is used.
 """
 from __future__ import annotations
 
@@ -24,9 +27,107 @@ import satellite_lowload_patch as lowload
 import satellite_ui_patch as satellite_ui
 import satellite_lowmem_patch as lowmem
 
-RELEASE_VERSION = "12.4.16"
+RELEASE_VERSION = "12.4.17"
 MAX_SECOND_ORDER_GROUPS = 2_000_000
 MAX_DESCRIPTOR_WORKING_SET_BYTES = 64 * 1024 * 1024
+
+
+def _section_range(grib_path: Path, wanted_section: int) -> tuple[int, int]:
+    size = grib_path.stat().st_size
+    with grib_path.open("rb") as handle:
+        header = handle.read(16)
+        if len(header) != 16 or header[:4] != b"GRIB":
+            raise RuntimeError("FCI soubor nema platnou GRIB hlavicku")
+        if header[7] != 2:
+            raise RuntimeError(f"FCI soubor neni GRIB edition 2 (edition={header[7]})")
+        total_length = int.from_bytes(header[8:16], "big")
+        if total_length < 20 or total_length > size:
+            raise RuntimeError(
+                f"Neplatna delka GRIB zpravy {total_length} B pro soubor {size} B"
+            )
+
+        pos = 16
+        while pos + 5 <= total_length - 4:
+            handle.seek(pos)
+            prefix = handle.read(5)
+            if len(prefix) != 5:
+                break
+            section_length = int.from_bytes(prefix[:4], "big")
+            section_number = prefix[4]
+            if section_length < 5 or pos + section_length > total_length:
+                raise RuntimeError(
+                    f"Neplatna GRIB sekce {section_number} na offsetu {pos}: "
+                    f"delka={section_length}"
+                )
+            if section_number == wanted_section:
+                return pos, section_length
+            pos += section_length
+    raise RuntimeError(f"FCI GRIB neobsahuje Section {wanted_section}")
+
+
+def _bits_from_blob(blob: bytes, bit_pos: int, width: int) -> int:
+    if width <= 0 or width > 64:
+        raise RuntimeError(f"Neocekavana bitova sirka {width}")
+    bit_end = bit_pos + width
+    if bit_pos < 0 or bit_end > len(blob) * 8:
+        raise RuntimeError("Bitova hodnota presahuje dostupna GRIB data")
+    byte_start = bit_pos // 8
+    bit_offset = bit_pos % 8
+    byte_count = (bit_offset + width + 7) // 8
+    chunk = int.from_bytes(blob[byte_start:byte_start + byte_count], "big")
+    shift = byte_count * 8 - bit_offset - width
+    return (chunk >> shift) & ((1 << width) - 1)
+
+
+def _signed_magnitude(raw: int, width: int) -> int:
+    sign_mask = 1 << (width - 1)
+    magnitude = raw & (sign_mask - 1)
+    return -magnitude if raw & sign_mask else magnitude
+
+
+def _read_spd_from_section5(grib_path: Path, expected_order: int) -> tuple[int, list[int]]:
+    """Read SPD without asking grib_get to treat an array as a scalar key."""
+    start, length = _section_range(grib_path, 5)
+    with grib_path.open("rb") as handle:
+        handle.seek(start)
+        section = handle.read(length)
+
+    if len(section) != length or len(section) < 34:
+        raise RuntimeError("FCI Section 5 je zkracena")
+    template = int.from_bytes(section[9:11], "big")
+    if template != 50002:
+        raise RuntimeError(f"SPD parser ocekava template 50002, nalezen {template}")
+
+    # Template 5.50002: octet 33 = orderOfSPD, octet 34 = widthOfSPD,
+    # octets 35... = order initial unsigned values + one signed-magnitude bias.
+    order = int(section[32])
+    width = int(section[33]) if order else 0
+    if order != int(expected_order):
+        raise RuntimeError(
+            f"FCI orderOfSPD nesedi: metadata={expected_order}, Section5={order}"
+        )
+    if order == 0:
+        return 0, []
+    if not 1 <= width <= 64:
+        raise RuntimeError(f"Neocekavane widthOfSPD={width}")
+
+    count = order + 1
+    spd_blob = section[34:]
+    required_bits = count * width
+    if required_bits > len(spd_blob) * 8:
+        raise RuntimeError(
+            f"FCI SPD je zkracene: potreba {required_bits} bitu, "
+            f"k dispozici {len(spd_blob) * 8}"
+        )
+
+    values: list[int] = []
+    bit_pos = 0
+    for _ in range(order):
+        values.append(_bits_from_blob(spd_blob, bit_pos, width))
+        bit_pos += width
+    bias_raw = _bits_from_blob(spd_blob, bit_pos, width)
+    values.append(_signed_magnitude(bias_raw, width))
+    return width, values
 
 
 def _load_second_order_metadata(core: Any, grib_path: Path, meta: dict[str, Any]) -> None:
@@ -53,9 +154,8 @@ def _load_second_order_metadata(core: Any, grib_path: Path, meta: dict[str, Any]
     packed_values = int(meta["number_of_second_order_values"])
     number_of_points = int(meta["number_of_points"])
 
-    # GRIB2 local template 5.50002 stores numberOfGroups as an unsigned 4-byte
-    # field. The old 65534 limit belongs to an ecCodes encoder path; it is not a
-    # valid decoding limit for externally produced EUMETSAT files.
+    # numberOfGroups is an unsigned four-byte value in template 5.50002.
+    # 65534 is an ecCodes encoder optimisation constant, not a format limit.
     if groups <= 0:
         raise RuntimeError(f"Neocekavany numberOfGroups={groups}")
     if groups > MAX_SECOND_ORDER_GROUPS:
@@ -98,30 +198,12 @@ def _load_second_order_metadata(core: Any, grib_path: Path, meta: dict[str, Any]
     order = int(meta["order_of_spd"])
     if not 0 <= order <= 3:
         raise RuntimeError(f"Nepodporovany orderOfSPD={order}")
-
     if int(meta["boustrophedonic"]) not in (0, 1):
         raise RuntimeError(f"Neocekavany boustrophedonicOrdering={meta['boustrophedonic']}")
 
-    if order:
-        width_out = core.run_cmd(["grib_get", "-p", "widthOfSPD", str(grib_path)], timeout=30)
-        width_tokens = lowmem._parse_ints(str(width_out))
-        if not width_tokens:
-            raise RuntimeError(f"FCI widthOfSPD nelze precist: {width_out!r}")
-        meta["width_of_spd"] = int(width_tokens[0])
-        if not 1 <= int(meta["width_of_spd"]) <= 64:
-            raise RuntimeError(f"Neocekavane widthOfSPD={meta['width_of_spd']}")
-
-        spd_out = core.run_cmd(["grib_get", "-p", "SPD", str(grib_path)], timeout=30)
-        spd = lowmem._parse_ints(str(spd_out))
-        expected = order + 1
-        if len(spd) != expected:
-            raise RuntimeError(
-                f"FCI SPD ma {len(spd)} hodnot, ocekavano {expected}: {spd_out!r}"
-            )
-        meta["spd"] = spd
-    else:
-        meta["width_of_spd"] = 0
-        meta["spd"] = []
+    width, spd = _read_spd_from_section5(grib_path, order)
+    meta["width_of_spd"] = width
+    meta["spd"] = spd
 
 
 def _read_aligned_uint_array(
@@ -166,9 +248,7 @@ def install(core: Any) -> None:
     if getattr(core, "_SATELLITE_GROUP_PATCH_INSTALLED", False):
         return
 
-    # lowmem._metadata and _second_order_layout resolve these names at call
-    # time, so replacing the module globals is enough; the sampler itself stays
-    # the 12.4.15 bounded-memory implementation.
+    # The low-memory decoder resolves these module globals at call time.
     lowmem._load_second_order_metadata = _load_second_order_metadata
     lowmem._read_aligned_uint_array = _read_aligned_uint_array
 
