@@ -1,4 +1,4 @@
-"""Release-level wiring checks for Home Assistant Astro Weather 12.4.17."""
+"""Release-level wiring checks for Home Assistant Astro Weather 12.4.18."""
 import json
 import sys
 import tempfile
@@ -26,6 +26,7 @@ import satellite_index_sampler_patch
 import satellite_ui_patch
 import satellite_lowmem_patch
 import satellite_group_patch
+import decision_policy_patch
 
 
 class ReleaseWiringTests(unittest.TestCase):
@@ -48,6 +49,7 @@ class ReleaseWiringTests(unittest.TestCase):
         satellite_ui_patch.install(core)
         satellite_lowmem_patch.install(core)
         satellite_group_patch.install(core)
+        decision_policy_patch.install(core)
 
     def test_release_config_and_docker_entrypoint(self):
         config = (ROOT / "astro_weather_backend/config.yaml").read_text(encoding="utf-8")
@@ -55,7 +57,7 @@ class ReleaseWiringTests(unittest.TestCase):
         app = (ROOT / "astro_weather_backend/app.py").read_text(encoding="utf-8")
         readme = (ROOT / "astro_weather_backend/README.md").read_text(encoding="utf-8")
         docs = (ROOT / "astro_weather_backend/DOCS.md").read_text(encoding="utf-8")
-        self.assertIn('version: "12.4.17"', config)
+        self.assertIn('version: "12.4.18"', config)
         self.assertIn("Plánování astrofotografie", config)
         self.assertIn("use_icon: true", config)
         self.assertIn("spatial_cloud_analysis: true", config)
@@ -75,6 +77,7 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("COPY satellite_ui_patch.py", docker)
         self.assertIn("COPY satellite_lowmem_patch.py", docker)
         self.assertIn("COPY satellite_group_patch.py", docker)
+        self.assertIn("COPY decision_policy_patch.py", docker)
         self.assertIn("entity_watchdog_patch.install(core)", app)
         self.assertIn("satellite_nowcast_patch.install(core)", app)
         self.assertIn("storage_protection_patch.install(core)", app)
@@ -84,8 +87,9 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertIn("satellite_ui_patch.install(core)", app)
         self.assertIn("satellite_lowmem_patch.install(core)", app)
         self.assertIn("satellite_group_patch.install(core)", app)
+        self.assertIn("decision_policy_patch.install(core)", app)
         self.assertIn('CMD ["python3", "-u", "/app/app.py"]', docker)
-        self.assertEqual(core.APP_VERSION, "12.4.17")
+        self.assertEqual(core.APP_VERSION, "12.4.18")
         self.assertEqual(core.ASTRO_START_CARD_VERSION, 35)
         self.assertEqual(satellite_nowcast_patch.SATELLITE_CARD_VERSION, 9)
         self.assertTrue(getattr(core, "_STORAGE_PROTECTION_PATCH_INSTALLED", False))
@@ -95,6 +99,7 @@ class ReleaseWiringTests(unittest.TestCase):
         self.assertTrue(getattr(core, "_SATELLITE_UI_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_LOWMEM_PATCH_INSTALLED", False))
         self.assertTrue(getattr(core, "_SATELLITE_GROUP_PATCH_INSTALLED", False))
+        self.assertTrue(getattr(core, "_DECISION_POLICY_PATCH_INSTALLED", False))
         self.assertIs(satellite_nowcast_patch._sample_product, satellite_lowmem_patch._sample_product)
 
     def test_v35_and_satellite_card_v9_install_is_self_contained(self):
@@ -135,7 +140,7 @@ class ReleaseWiringTests(unittest.TestCase):
             self.assertIn("_irHistoryV9", satellite_v9)
 
             manifest = json.loads(target.joinpath("astro-weather-cards-manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest["backend_version"], "12.4.17")
+            self.assertEqual(manifest["backend_version"], "12.4.18")
             self.assertEqual(manifest["cards"][0]["version"], 35)
             self.assertEqual(manifest["cards"][0]["url"], "/local/astro-start-card-v35.js")
             self.assertEqual(manifest["cards"][1]["version"], 25)
