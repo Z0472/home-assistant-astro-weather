@@ -239,3 +239,8 @@ Projekt je distribuován pod licencí **GNU General Public License v3.0 (GPL-3.0
 Úplné znění licence je v souboru [LICENSE](LICENSE).
 
 ---
+# Varianta pro Azure AKS
+
+Samostatný Docker kontejner, web bez Home Assistantu a historie předpovědí v PostgreSQL:
+[návod pro Azure AKS](cloud/README.md). Původní instalace HA doplňku pokračuje beze změny.
+

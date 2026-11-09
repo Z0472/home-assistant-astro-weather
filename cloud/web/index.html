@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Astro Weather · Observatory</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><header><span class="eyebrow">OBSERVATORY / WEATHER SYSTEM</span><h1>Astro Weather</h1>
+<p id="location">Načítám lokalitu…</p><button id="refresh">Obnovit</button></header>
+<p id="error" role="alert"></p><section class="verdict"><span class="eyebrow">PODMÍNKY PRO FOCENÍ</span>
+<h2 id="verdict">Čekám na první předpověď</h2><p id="reason"></p><p id="updated"></p></section>
+<section><h2>Nejbližší noci</h2><div id="nights" class="nights"></div></section>
+<section><h2>Hodinová předpověď</h2><p>Oblačnost a počasí MET Norway; další modely vstupují do rozhodnutí výše. Chybějící údaje jsou označené —.</p>
+<div class="scroll"><table><thead><tr><th>Čas</th><th>Oblačnost</th><th>Nízká</th><th>Střední</th><th>Vysoká</th><th>Teplota</th><th>Rosný bod</th><th>Vítr</th><th>Srážky / 1 h</th></tr></thead><tbody id="hours"></tbody></table></div></section>
+<section><h2>Historie předpovědí</h2><p>Uložené předpovědi a tehdejší rozhodnutí; nejde o historii skutečně naměřeného počasí.</p>
+<select id="history"><option value="">Aktuální předpověď</option></select><button id="more">Starší záznamy</button><p id="archive"></p></section>
+<footer>Data: <a href="https://www.met.no/">MET Norway (CC BY 4.0)</a>, <a href="https://opendata.chmi.cz/">ČHMÚ ALADIN</a>, <a href="https://open-meteo.com/">Open-Meteo / DWD ICON / CAMS</a>, <a href="https://www.7timer.info/">7Timer</a>.
+<br>Výpočty: <a href="https://github.com/Z0472/home-assistant-astro-weather">Astro Weather Backend</a>. Časy jsou v časovém pásmu lokality.</footer>
+</main><script src="/dashboard.js"></script></body></html>

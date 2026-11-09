@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astro-weather
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: astro-weather
+  template:
+    metadata:
+      labels:
+        app: astro-weather
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: migrate
+          image: astro-weather:local
+          command: [python, /app/cloud/server.py, migrate]
+          envFrom:
+            - secretRef:
+                name: astro-postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: '1', memory: 256Mi}
+          volumeMounts:
+            - {name: options, mountPath: /config, readOnly: true}
+            - {name: cache, mountPath: /data}
+            - {name: temp, mountPath: /tmp}
+            - {name: shared-memory, mountPath: /dev/shm}
+      containers:
+        - name: backend
+          image: astro-weather:local
+          ports:
+            - {name: http, containerPort: 8099}
+          envFrom:
+            - secretRef:
+                name: astro-postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: '2', memory: 2Gi}
+          startupProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 12
+          volumeMounts:
+            - {name: options, mountPath: /config, readOnly: true}
+            - {name: cache, mountPath: /data}
+            - {name: temp, mountPath: /tmp}
+            - {name: shared-memory, mountPath: /dev/shm}
+      volumes:
+        - name: options
+          configMap:
+            name: astro-options
+        - name: cache
+          persistentVolumeClaim:
+            claimName: astro-cache
+        - name: temp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: shared-memory
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi

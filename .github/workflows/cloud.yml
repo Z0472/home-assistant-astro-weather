@@ -1,0 +1,56 @@
+name: Azure container and PostgreSQL
+on:
+  pull_request:
+    paths: ['cloud/**', 'astro_weather_backend/**', '.github/workflows/cloud.yml']
+  push:
+    branches: [main, 'work/azure-aks-postgres']
+    paths: ['cloud/**', 'astro_weather_backend/**', '.github/workflows/cloud.yml']
+permissions:
+  contents: read
+jobs:
+  cloud:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-bookworm
+        env:
+          POSTGRES_USER: astro_test
+          POSTGRES_PASSWORD: ci-local-only
+          POSTGRES_DB: astro_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U astro_test -d astro_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: astro_test
+      PGPASSWORD: ci-local-only
+      PGDATABASE: astro_test
+      PGSSLMODE: disable
+      ASTRO_TEST_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r cloud/requirements.txt
+      - run: python -m unittest discover -s cloud/tests -v
+      - run: node --check cloud/web/dashboard.js
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$pwd/cloud/deploy.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { $errors | Out-String | Write-Error; exit 1 }
+      - uses: azure/setup-kubectl@v4
+      - name: Validate Kubernetes resources
+        run: |
+          kubectl kustomize cloud/k8s | docker run --rm -i ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary
+      - name: Build standalone image
+        run: docker build -f cloud/Dockerfile -t astro-weather:ci .
+      - name: Verify non-root image and GRIB tools
+        run: |
+          docker run --rm astro-weather:ci sh -c 'test "$(id -u)" = 10001 && grib_get -V && python -c "import psycopg"'
+      - name: Validate local playground
+        run: ASTRO_LOCAL_PASSWORD=ci-local-only docker compose -f cloud/compose.yaml config --quiet

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: astro-weather
+spec:
+  selector:
+    app: astro-weather
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP
