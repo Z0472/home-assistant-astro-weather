@@ -1,0 +1,39 @@
+# Local integration playground only; Azure uses managed PostgreSQL, not this container.
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: astro
+      POSTGRES_USER: astro
+      POSTGRES_PASSWORD: ${ASTRO_LOCAL_PASSWORD:?Set ASTRO_LOCAL_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U astro -d astro']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  migrate:
+    build: {context: .., dockerfile: cloud/Dockerfile}
+    command: [python, /app/cloud/server.py, migrate]
+    environment: &db
+      PGHOST: postgres
+      PGUSER: astro
+      PGDATABASE: astro
+      PGPASSWORD: ${ASTRO_LOCAL_PASSWORD:?Set ASTRO_LOCAL_PASSWORD}
+      PGSSLMODE: disable
+    volumes: &mounts
+      - ./options.example.json:/config/options.json:ro
+      - cache:/data
+    depends_on:
+      postgres: {condition: service_healthy}
+  backend:
+    build: {context: .., dockerfile: cloud/Dockerfile}
+    shm_size: 1gb
+    environment: *db
+    volumes: *mounts
+    ports: ['127.0.0.1:8099:8099']
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+volumes:
+  pgdata:
+  cache:

@@ -1,0 +1,17 @@
+{
+  "latitude": 50.0755,
+  "longitude": 14.4378,
+  "altitude": 250,
+  "timezone": "Europe/Prague",
+  "refresh_minutes": 30,
+  "horizon_hours": 72,
+  "use_icon": true,
+  "use_moon": true,
+  "use_aerosols": true,
+  "use_seeing": true,
+  "use_satellite": false,
+  "spatial_cloud_analysis": true,
+  "publish_homeassistant_entities": false,
+  "install_dashboard_cards": false,
+  "install_lovelace_resources": false
+}
