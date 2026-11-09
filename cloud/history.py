@@ -36,7 +36,7 @@ class History:
 
     def lock(self, conn):
         # Stable signed bigint, independent of Python's randomized hash().
-        key = int.from_bytes(bytes.fromhex(self.key)[:8], 'big', signed=True)
+        key = int.from_bytes(hashlib.sha256(self.key.encode()).digest()[:8], 'big', signed=True)
         return conn.execute('SELECT pg_try_advisory_lock(%s) AS acquired', (key,)).fetchone()['acquired']
 
     def save(self, snapshot, conn=None):

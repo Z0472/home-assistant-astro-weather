@@ -54,3 +54,6 @@ jobs:
           docker run --rm astro-weather:ci sh -c 'test "$(id -u)" = 10001 && grib_get -V && python -c "import psycopg"'
       - name: Validate local playground
         run: ASTRO_LOCAL_PASSWORD=ci-local-only docker compose -f cloud/compose.yaml config --quiet
+      - name: Test container startup against PostgreSQL without provider calls
+        run: |
+          python cloud/tests/container_smoke.py
